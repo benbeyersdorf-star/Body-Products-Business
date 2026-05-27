@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tallow Recipe Cost Calculator</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --green:#1a3a1a;--green-mid:#2d5a2d;--green-light:#3B6D11;--green-pale:#d4e8d4;--green-faint:#EAF3DE;--green-mid2:#97C459;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-border:#e8c47a;
+  --cream:#faf8f3;--linen:#ece8e0;--ink:#1c1c18;--muted:#6b6b5e;--border:#ddd8ce;--border2:#c8c4ba;
+  --white:#ffffff;--danger:#c0392b;--danger-bg:#fff0ee;
+  --radius:8px;--radius-lg:12px;
+}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--cream);color:var(--ink);font-size:15px;line-height:1.5;min-height:100vh;}
+
+.app{max-width:1100px;margin:0 auto;padding:28px 24px 60px;}
+.app-header{padding-bottom:16px;border-bottom:2px solid var(--green);margin-bottom:28px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.app-title{font-family:Georgia,serif;font-size:30px;font-style:italic;font-weight:normal;color:var(--green);}
+.app-sub{font-size:13px;color:var(--muted);margin-top:3px;}
+
+.status-bar{font-size:12px;padding:6px 12px;border-radius:6px;display:inline-flex;align-items:center;gap:6px;}
+.status-bar.ok{background:#EAF3DE;color:#27500A;}
+.status-bar.err{background:#fff0ee;color:var(--danger);}
+.status-bar.loading{background:var(--linen);color:var(--muted);}
+
+.panel{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:20px;}
+.ph{background:var(--green);padding:13px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.ph-title{font-size:15px;font-weight:600;color:var(--green-pale);}
+.badge{font-size:11px;padding:3px 10px;border-radius:12px;background:var(--green-faint);color:var(--green-light);font-weight:600;white-space:nowrap;}
+.pb{padding:20px;}
+
+.ing-row{display:grid;grid-template-columns:minmax(0,1fr) 120px 100px 36px;gap:10px;align-items:center;padding:11px 14px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;}
+.ing-name{font-size:14px;font-weight:600;color:var(--ink);}
+.ing-meta{font-size:12px;color:var(--muted);margin-top:1px;}
+.cost-wrap{display:flex;align-items:center;gap:4px;border:1px solid var(--border2);border-radius:var(--radius);padding:6px 10px;background:var(--white);}
+.cost-wrap span{font-size:12px;color:var(--muted);}
+.cost-wrap input{width:62px;border:none;outline:none;font-size:14px;background:transparent;color:var(--ink);}
+.unit-sel{width:100%;font-size:13px;color:var(--ink);background:var(--white);border:1px solid var(--border2);border-radius:var(--radius);padding:7px 6px;cursor:pointer;}
+.del-btn{width:32px;height:32px;border-radius:50%;border:none;background:transparent;color:#bbb;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.del-btn:hover{background:var(--danger-bg);color:var(--danger);}
+
+.add-row{display:grid;grid-template-columns:minmax(0,1fr) 100px 150px auto;gap:10px;align-items:center;margin-top:14px;padding-top:16px;border-top:1px solid var(--border);}
+.inp{border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;font-size:14px;background:var(--white);color:var(--ink);width:100%;outline:none;font-family:inherit;}
+.inp:focus{border-color:var(--green-light);}
+select.inp{cursor:pointer;}
+
+.ri-row{display:grid;grid-template-columns:minmax(0,1fr) 90px 65px 36px;gap:10px;align-items:center;padding:11px 14px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;}
+.ri-qty{border:2px solid var(--green-mid2);border-radius:var(--radius);padding:7px 10px;font-size:14px;font-weight:600;text-align:center;background:var(--white);color:var(--ink);width:100%;outline:none;}
+.ri-qty:focus{border-color:var(--green-light);}
+.ri-unit{font-size:13px;color:var(--muted);}
+
+.two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;}
+
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.field label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;font-weight:500;letter-spacing:.02em;}
+.field input{width:100%;border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;font-size:14px;background:var(--white);color:var(--ink);outline:none;font-family:inherit;}
+.field input:focus{border-color:var(--green-light);}
+
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.metric{background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);padding:13px 14px;text-align:center;}
+.metric.hi{background:var(--green);border-color:var(--green);}
+.metric-lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.metric.hi .metric-lbl{color:rgba(212,232,212,.65);}
+.metric-val{font-family:Georgia,serif;font-size:26px;color:var(--ink);line-height:1;}
+.metric.hi .metric-val{color:#fff;}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+.metric.hi .metric-sub{color:rgba(212,232,212,.5);}
+
+.brkdn-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--linen);font-size:13px;}
+.brkdn-row.total{border-bottom:none;border-top:2px solid var(--border);font-weight:700;font-size:14px;padding-top:10px;color:var(--green-light);}
+.brkdn-name{width:190px;flex-shrink:0;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.brkdn-bar-wrap{flex:1;height:6px;background:var(--linen);border-radius:3px;overflow:hidden;}
+.brkdn-bar{height:100%;background:var(--green-light);border-radius:3px;transition:width .4s ease;}
+.brkdn-amt{width:58px;text-align:right;color:var(--muted);flex-shrink:0;}
+
+.saved-card{padding:13px 16px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-bottom:8px;transition:all .15s;}
+.saved-card:hover{border-color:var(--green-mid2);background:var(--green-faint);}
+.saved-card.active{border-color:var(--green-light);background:var(--green-faint);}
+.saved-card-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+.saved-card-name{font-size:14px;font-weight:600;color:var(--ink);}
+.saved-card-profit{font-size:15px;font-weight:700;color:var(--green-light);white-space:nowrap;}
+.saved-card-meta{font-size:12px;color:var(--muted);margin-top:3px;}
+.saved-actions{display:flex;gap:6px;margin-top:8px;}
+
+.empty-state{text-align:center;padding:30px 16px;color:var(--muted);font-size:14px;}
+.empty-icon{font-size:32px;margin-bottom:8px;}
+
+.btn{border-radius:var(--radius);padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;font-family:inherit;white-space:nowrap;border:none;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-green{background:var(--green);color:var(--green-pale);}
+.btn-green:hover:not(:disabled){background:var(--green-mid);}
+.btn-amber{background:var(--amber);color:var(--amber-bg);}
+.btn-amber:hover:not(:disabled){opacity:.9;}
+.btn-ghost{background:transparent;border:1px solid rgba(212,232,212,.35);color:rgba(212,232,212,.8);}
+.btn-ghost:hover{background:rgba(255,255,255,.1);}
+.btn-sm{padding:6px 13px;font-size:13px;}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--ink);}
+.btn-outline:hover{background:var(--linen);}
+.btn-danger{background:transparent;border:1px solid #e8b0aa;color:var(--danger);font-size:12px;padding:4px 10px;}
+.btn-danger:hover{background:var(--danger-bg);}
+
+.divider{border:none;border-top:1px solid var(--border);margin:18px 0;}
+.sec-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:16px 0 9px;}
+
+.scroll{max-height:300px;overflow-y:auto;padding-right:2px;}
+.scroll-sm{max-height:240px;overflow-y:auto;padding-right:2px;}
+.scroll-saved{max-height:260px;overflow-y:auto;padding-right:2px;}
+
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.15);border-top-color:var(--green);border-radius:50%;animation:spin .6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.toast{position:fixed;bottom:24px;right:24px;background:var(--green);color:#fff;padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:500;opacity:0;transform:translateY(8px);transition:all .25s;z-index:999;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+
+@media(max-width:700px){
+  .two-col{grid-template-columns:1fr;}
+  .ing-row{grid-template-columns:minmax(0,1fr) 110px 36px;}
+  .ing-row .cost-wrap{display:none;}
+  .metrics{grid-template-columns:1fr 1fr;}
+  .metrics .metric:last-child{grid-column:span 2;}
+  .add-row{grid-template-columns:minmax(0,1fr) auto;}
+  .add-row select,.add-row .cost-wrap{display:none;}
+}
+
+/* ── CONFIG BANNER ── */
+.config-banner{background:#fff8e6;border:1px solid var(--amber-border);border-radius:var(--radius);padding:16px 20px;margin-bottom:24px;}
+.config-banner h3{font-size:15px;font-weight:700;color:var(--amber);margin-bottom:8px;}
+.config-banner code{background:rgba(0,0,0,.07);padding:2px 6px;border-radius:4px;font-size:13px;font-family:monospace;}
+.config-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+.config-inputs input{border:1px solid var(--amber-border);border-radius:var(--radius);padding:8px 12px;font-size:13px;width:100%;font-family:monospace;background:#fff;}
+.config-inputs input:focus{outline:none;border-color:var(--amber);}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<div class="app">
+  <div class="app-header">
+    <div>
+      <div class="app-title">Tallow Recipe Cost Calculator</div>
+      <div class="app-sub">Build recipes · Price ingredients · See your margins</div>
+    </div>
+    <div id="status-bar" class="status-bar loading">
+      <div class="spinner"></div> Connecting...
+    </div>
+  </div>
+
+  <!-- Config banner — hidden once connected -->
+  <div class="config-banner" id="config-banner">
+    <h3>⚙️ One-time setup — paste your Supabase credentials</h3>
+    <p style="font-size:13px;color:var(--muted);">Find these in your Supabase project under <strong>Project Settings → API</strong>. You only need to do this once.</p>
+    <div class="config-inputs">
+      <input id="cfg-url" placeholder="Project URL  (https://xxxx.supabase.co)" />
+      <input id="cfg-key" placeholder="Anon public key  (eyJh...)" />
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;align-items:center;">
+      <button class="btn btn-green btn-sm" onclick="saveConfig()">Connect</button>
+      <span id="cfg-err" style="font-size:12px;color:var(--danger);"></span>
+    </div>
+  </div>
+
+  <!-- Ingredient Library -->
+  <div class="panel">
+    <div class="ph">
+      <div class="ph-title">Ingredient Library</div>
+      <span class="badge" id="ing-count">0 ingredients</span>
+    </div>
+    <div class="pb">
+      <div class="scroll" id="ing-list">
+        <div class="empty-state"><div class="empty-icon">🌿</div>Connecting to database...</div>
+      </div>
+      <div class="add-row">
+        <input class="inp" id="new-name" placeholder="Ingredient name" onkeydown="if(event.key==='Enter')addIng()" />
+        <select class="inp" id="new-unit">
+          <option value="oz">oz</option><option value="lb">lb</option>
+          <option value="tsp">tsp</option><option value="tbsp">tbsp</option>
+          <option value="ml">ml</option><option value="g">g</option>
+          <option value="each">each</option><option value="drop">drop</option>
+        </select>
+        <div class="cost-wrap">
+          <span>$</span>
+          <input type="number" id="new-cost" placeholder="0.000" step="0.001" min="0" onkeydown="if(event.key==='Enter')addIng()" />
+          <span style="white-space:nowrap;font-size:12px;color:var(--muted);">/ unit</span>
+        </div>
+        <button class="btn btn-green" onclick="addIng()" id="btn-add-ing">+ Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Two column -->
+  <div class="two-col">
+
+    <!-- Recipe Builder -->
+    <div class="panel" style="margin-bottom:0;">
+      <div class="ph">
+        <div class="ph-title">Recipe Builder</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm btn-ghost" onclick="clearRecipe()">Clear</button>
+          <button class="btn btn-sm btn-amber" onclick="saveRecipe()" id="btn-save">&#128190; Save</button>
+        </div>
+      </div>
+      <div class="pb">
+        <div class="field" style="margin-bottom:14px;">
+          <label>Recipe name</label>
+          <input class="inp" id="recipe-name" placeholder="e.g. Whipped Tallow Moisturizer 2oz" oninput="calc()" />
+        </div>
+
+        <div class="sec-label" style="margin-top:0;">Ingredients in this recipe</div>
+        <div class="scroll-sm" id="ri-list">
+          <div class="empty-state" style="padding:16px 0 8px;"><div class="empty-icon">🧴</div>Pick ingredients below</div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:12px;padding-top:14px;border-top:1px solid var(--border);">
+          <select class="inp" id="ri-pick" style="flex:1;">
+            <option value="">— select ingredient to add —</option>
+          </select>
+          <button class="btn btn-green btn-sm" onclick="addToRecipe()">+ Add</button>
+        </div>
+
+        <hr class="divider">
+        <div class="sec-label" style="margin-top:0;">Batch &amp; pricing settings</div>
+        <div class="settings-grid">
+          <div class="field"><label>Units per batch</label><input type="number" id="batch-units" value="12" min="1" oninput="calc()"></div>
+          <div class="field"><label>Labor time (minutes)</label><input type="number" id="labor-mins" value="60" min="0" oninput="calc()"></div>
+          <div class="field"><label>Hourly rate ($)</label><input type="number" id="hourly" value="20" min="0" oninput="calc()"></div>
+          <div class="field"><label>Cost markup (×)</label><input type="number" id="markup" value="2.5" step="0.1" min="1" oninput="calc()"></div>
+          <div class="field" style="grid-column:span 2;"><label>Platform fee % (Etsy ~8%, Amazon ~15%)</label><input type="number" id="fee" value="8" step="0.5" min="0" oninput="calc()"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column -->
+    <div style="display:flex;flex-direction:column;gap:20px;">
+
+      <!-- Cost Breakdown -->
+      <div class="panel" style="margin-bottom:0;">
+        <div class="ph">
+          <div class="ph-title">Cost Breakdown</div>
+          <span id="result-name" style="font-size:12px;color:rgba(212,232,212,.6);font-style:italic;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+        </div>
+        <div class="pb" id="results-body">
+          <div class="empty-state"><div class="empty-icon">📊</div>Build a recipe to see your costs</div>
+        </div>
+      </div>
+
+      <!-- Saved Recipes -->
+      <div class="panel" style="margin-bottom:0;">
+        <div class="ph">
+          <div class="ph-title">Saved Recipes</div>
+          <span class="badge" id="recipe-count">0 recipes</span>
+        </div>
+        <div class="pb">
+          <div class="scroll-saved" id="saved-list">
+            <div class="empty-state"><div class="empty-icon">📋</div>No saved recipes yet</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ─────────────────────────────────────────────────────────────────
+// Option A: hardcode after setup (recommended for personal use)
+const SUPABASE_URL = '';   // e.g. 'https://abcdefgh.supabase.co'
+const SUPABASE_KEY = '';   // your anon public key
+
+// ── State ──────────────────────────────────────────────────────────────────
+let sb = null;
+let ings = [];
+let saved = [];
+let recipe = {name:'', items:[]};
+let connected = false;
+
+// ── Init ───────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const url = SUPABASE_URL || localStorage.getItem('sb_url') || '';
+  const key = SUPABASE_KEY || localStorage.getItem('sb_key') || '';
+  if (url && key) {
+    document.getElementById('config-banner').style.display = 'none';
+    connect(url, key);
+  }
+});
+
+function saveConfig() {
+  const url = document.getElementById('cfg-url').value.trim();
+  const key = document.getElementById('cfg-key').value.trim();
+  if (!url || !key) { document.getElementById('cfg-err').textContent = 'Both fields required.'; return; }
+  localStorage.setItem('sb_url', url);
+  localStorage.setItem('sb_key', key);
+  document.getElementById('config-banner').style.display = 'none';
+  connect(url, key);
+}
+
+async function connect(url, key) {
+  setStatus('loading', 'Connecting...');
+  try {
+    sb = supabase.createClient(url, key);
+    await loadIngs();
+    await loadSaved();
+    connected = true;
+    setStatus('ok', '● Connected');
+  } catch(e) {
+    setStatus('err', '✕ Connection failed — check your credentials');
+    console.error(e);
+  }
+}
+
+function setStatus(type, msg) {
+  const el = document.getElementById('status-bar');
+  el.className = 'status-bar ' + type;
+  el.innerHTML = type === 'loading' ? `<div class="spinner"></div> ${msg}` : msg;
+}
+
+// ── Ingredients ────────────────────────────────────────────────────────────
+async function loadIngs() {
+  const {data, error} = await sb.from('ingredients').select('*').order('name');
+  if (error) throw error;
+  ings = data;
+  renderIngs();
+}
+
+function renderIngs() {
+  const el = document.getElementById('ing-list');
+  document.getElementById('ing-count').textContent = ings.length + ' ingredient' + (ings.length !== 1 ? 's' : '');
+  if (!ings.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🌿</div>Add your first ingredient below</div>'; updPick(); return; }
+  el.innerHTML = ings.map(g => `
+    <div class="ing-row">
+      <div>
+        <div class="ing-name">${esc(g.name)}</div>
+        <div class="ing-meta">$${Number(g.cost).toFixed(3)} per ${g.unit}</div>
+      </div>
+      <div class="cost-wrap">
+        <span>$</span>
+        <input type="number" value="${Number(g.cost).toFixed(3)}" step="0.001" min="0"
+          onchange="updI(${g.id},'cost',parseFloat(this.value)||0)" />
+      </div>
+      <select class="unit-sel" onchange="updI(${g.id},'unit',this.value)">
+        ${['oz','lb','tsp','tbsp','ml','g','each','drop'].map(u => `<option${u===g.unit?' selected':''}>${u}</option>`).join('')}
+      </select>
+      <button class="del-btn" onclick="delI(${g.id})" title="Remove">×</button>
+    </div>`).join('');
+  updPick();
+}
+
+async function addIng() {
+  if (!connected) return;
+  const n = document.getElementById('new-name').value.trim();
+  if (!n) { document.getElementById('new-name').focus(); return; }
+  const u = document.getElementById('new-unit').value;
+  const c = parseFloat(document.getElementById('new-cost').value) || 0;
+  const btn = document.getElementById('btn-add-ing');
+  btn.disabled = true;
+  const {data, error} = await sb.from('ingredients').insert({name:n, unit:u, cost:c}).select().single();
+  btn.disabled = false;
+  if (error) { toast('Error saving ingredient', true); return; }
+  ings.push(data);
+  ings.sort((a,b) => a.name.localeCompare(b.name));
+  document.getElementById('new-name').value = '';
+  document.getElementById('new-cost').value = '';
+  document.getElementById('new-name').focus();
+  renderIngs(); calc(); toast('Ingredient added');
+}
+
+async function updI(id, k, v) {
+  if (!connected) return;
+  const {error} = await sb.from('ingredients').update({[k]:v}).eq('id', id);
+  if (error) { toast('Error updating', true); return; }
+  const g = ings.find(i => i.id === id);
+  if (g) { g[k] = v; renderIngs(); renderRI(); calc(); }
+}
+
+async function delI(id) {
+  if (!confirm('Remove this ingredient?')) return;
+  const {error} = await sb.from('ingredients').delete().eq('id', id);
+  if (error) { toast('Error deleting', true); return; }
+  ings = ings.filter(i => i.id !== id);
+  recipe.items = recipe.items.filter(i => i.id !== id);
+  renderIngs(); renderRI(); calc(); toast('Ingredient removed');
+}
+
+function updPick() {
+  const s = document.getElementById('ri-pick'), cur = s.value;
+  s.innerHTML = '<option value="">— select ingredient to add —</option>' +
+    ings.map(g => `<option value="${g.id}">${esc(g.name)} · $${Number(g.cost).toFixed(3)}/${g.unit}</option>`).join('');
+  if (cur) s.value = cur;
+}
+
+// ── Recipe ─────────────────────────────────────────────────────────────────
+function renderRI() {
+  const el = document.getElementById('ri-list');
+  if (!recipe.items.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:14px 0 6px;"><div class="empty-icon">🧴</div>Select ingredients from the dropdown below</div>';
+    return;
+  }
+  el.innerHTML = recipe.items.map((ri, i) => {
+    const g = ings.find(x => x.id === ri.id);
+    if (!g) return '';
+    return `<div class="ri-row">
+      <div>
+        <div style="font-size:14px;font-weight:600;color:var(--ink);">${esc(g.name)}</div>
+        <div style="font-size:12px;color:var(--muted);">$${(ri.qty * Number(g.cost)).toFixed(3)} total in batch</div>
+      </div>
+      <input class="ri-qty" type="number" value="${ri.qty}" min="0" step="0.01"
+        onchange="updQ(${i},parseFloat(this.value)||0)" />
+      <div class="ri-unit">${g.unit}</div>
+      <button class="del-btn" onclick="remRI(${i})">×</button>
+    </div>`;
+  }).join('');
+}
+
+function addToRecipe() {
+  const id = parseInt(document.getElementById('ri-pick').value);
+  if (!id) return;
+  if (recipe.items.find(i => i.id === id)) return;
+  recipe.items.push({id, qty:1});
+  document.getElementById('ri-pick').value = '';
+  renderRI(); calc();
+}
+
+function updQ(i, v) { recipe.items[i].qty = v; renderRI(); calc(); }
+function remRI(i) { recipe.items.splice(i, 1); renderRI(); calc(); }
+
+function clearRecipe() {
+  if (recipe.items.length && !confirm('Clear current recipe?')) return;
+  recipe = {name:'', items:[]};
+  document.getElementById('recipe-name').value = '';
+  renderRI(); calc();
+}
+
+// ── Calculate ──────────────────────────────────────────────────────────────
+function calc() {
+  const body = document.getElementById('results-body');
+  const rname = document.getElementById('recipe-name').value || 'Untitled recipe';
+  document.getElementById('result-name').textContent = rname;
+  if (!recipe.items.length) {
+    body.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div>Build a recipe to see your costs</div>';
+    return;
+  }
+  const units = parseFloat(document.getElementById('batch-units').value) || 1;
+  const mins  = parseFloat(document.getElementById('labor-mins').value) || 0;
+  const rate  = parseFloat(document.getElementById('hourly').value) || 0;
+  const mu    = parseFloat(document.getElementById('markup').value) || 2.5;
+  const fee   = (parseFloat(document.getElementById('fee').value) || 0) / 100;
+
+  let bd = [], ingTotal = 0;
+  for (const ri of recipe.items) {
+    const g = ings.find(x => x.id === ri.id);
+    if (!g) continue;
+    const lc = ri.qty * Number(g.cost);
+    ingTotal += lc;
+    bd.push({name: g.name, cost: lc});
+  }
+  const laborBatch = (mins/60)*rate, laborUnit = laborBatch/units;
+  const costUnit = (ingTotal + laborBatch)/units;
+  const online = costUnit * mu * (1+fee);
+  const profit = online - costUnit;
+  const margin = profit/online*100;
+  const fmt = v => '$'+v.toFixed(2);
+
+  body.innerHTML = `
+    <div class="metrics">
+      <div class="metric"><div class="metric-lbl">Cost per unit</div><div class="metric-val">${fmt(costUnit)}</div><div class="metric-sub">batch of ${units}</div></div>
+      <div class="metric"><div class="metric-lbl">Online price</div><div class="metric-val">${fmt(online)}</div><div class="metric-sub">${mu}× + ${(fee*100).toFixed(0)}% fee</div></div>
+      <div class="metric hi"><div class="metric-lbl">Profit per unit</div><div class="metric-val">${fmt(profit)}</div><div class="metric-sub">${margin.toFixed(0)}% margin</div></div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-lbl">Batch revenue</div><div class="metric-val">${fmt(online*units)}</div><div class="metric-sub">${units} units</div></div>
+      <div class="metric"><div class="metric-lbl">Batch cost</div><div class="metric-val">${fmt(ingTotal+laborBatch)}</div><div class="metric-sub">${fmt(laborBatch)} labor</div></div>
+      <div class="metric hi"><div class="metric-lbl">Batch profit</div><div class="metric-val">${fmt(profit*units)}</div><div class="metric-sub">after all costs</div></div>
+    </div>
+    <div class="sec-label" style="margin-top:18px;">Cost per unit breakdown</div>
+    ${bd.sort((a,b)=>b.cost-a.cost).map(item => {
+      const pct = Math.min((item.cost/(ingTotal+laborBatch))*100, 100);
+      return `<div class="brkdn-row">
+        <span class="brkdn-name" title="${esc(item.name)}">${esc(item.name)}</span>
+        <div class="brkdn-bar-wrap"><div class="brkdn-bar" style="width:${pct.toFixed(1)}%"></div></div>
+        <span class="brkdn-amt">${fmt(item.cost/units)}</span>
+      </div>`;
+    }).join('')}
+    ${laborUnit > 0 ? `<div class="brkdn-row">
+      <span class="brkdn-name">Labor (${mins}min ÷ ${units})</span>
+      <div class="brkdn-bar-wrap"><div class="brkdn-bar" style="width:${Math.min(laborUnit/costUnit*100,100).toFixed(1)}%;background:#BA7517;"></div></div>
+      <span class="brkdn-amt">${fmt(laborUnit)}</span>
+    </div>` : ''}
+    <div class="brkdn-row total">
+      <span class="brkdn-name">Total per unit</span>
+      <div class="brkdn-bar-wrap"></div>
+      <span class="brkdn-amt" style="color:var(--green-light);">${fmt(costUnit)}</span>
+    </div>`;
+}
+
+// ── Save / Load Recipes ────────────────────────────────────────────────────
+async function saveRecipe() {
+  if (!connected) return;
+  const name = document.getElementById('recipe-name').value.trim() || 'Untitled recipe';
+  if (!recipe.items.length) { toast('Add at least one ingredient first', true); return; }
+
+  const units = parseFloat(document.getElementById('batch-units').value) || 1;
+  const mins  = parseFloat(document.getElementById('labor-mins').value) || 0;
+  const rate  = parseFloat(document.getElementById('hourly').value) || 0;
+  const mu    = parseFloat(document.getElementById('markup').value) || 2.5;
+  const fee   = (parseFloat(document.getElementById('fee').value) || 0) / 100;
+
+  const ingTotal = recipe.items.reduce((s,ri) => {
+    const g = ings.find(x => x.id === ri.id);
+    return g ? s + ri.qty * Number(g.cost) : s;
+  }, 0);
+  const costUnit = (ingTotal + (mins/60*rate)) / units;
+  const online   = costUnit * mu * (1+fee);
+  const profit   = online - costUnit;
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+
+  const payload = {
+    name, items: recipe.items,
+    batch_units: units, labor_mins: mins, hourly_rate: rate,
+    markup: mu, platform_fee: fee*100,
+    cost_per_unit: costUnit, online_price: online, profit_per_unit: profit,
+    updated_at: new Date().toISOString()
+  };
+
+  // Upsert by name
+  const existing = saved.find(r => r.name === name);
+  let error;
+  if (existing) {
+    ({error} = await sb.from('recipes').update(payload).eq('id', existing.id));
+  } else {
+    const res = await sb.from('recipes').insert(payload).select().single();
+    error = res.error;
+    if (!error) saved.push(res.data);
+  }
+
+  btn.disabled = false;
+  if (error) { toast('Error saving recipe', true); return; }
+  if (existing) Object.assign(existing, payload);
+  await loadSaved();
+  toast('Recipe saved ✓');
+}
+
+async function loadSaved() {
+  const {data, error} = await sb.from('recipes').select('*').order('updated_at', {ascending:false});
+  if (error) return;
+  saved = data;
+  renderSaved();
+}
+
+function renderSaved() {
+  const el = document.getElementById('saved-list');
+  document.getElementById('recipe-count').textContent = saved.length + ' recipe' + (saved.length !== 1 ? 's' : '');
+  if (!saved.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div>No saved recipes yet</div>';
+    return;
+  }
+  el.innerHTML = saved.map(r => `
+    <div class="saved-card" id="sc-${r.id}" onclick="loadRec(${r.id})">
+      <div class="saved-card-top">
+        <div class="saved-card-name">${esc(r.name)}</div>
+        <div class="saved-card-profit">$${Number(r.profit_per_unit).toFixed(2)} <span style="font-size:11px;font-weight:400;color:var(--muted);">profit/unit</span></div>
+      </div>
+      <div class="saved-card-meta">${r.batch_units} units · $${Number(r.cost_per_unit).toFixed(2)} cost · $${Number(r.online_price).toFixed(2)} online</div>
+      <div class="saved-actions">
+        <button class="btn btn-sm btn-outline" onclick="loadRec(${r.id});event.stopPropagation();">Load</button>
+        <button class="btn btn-sm btn-danger" onclick="delRec(${r.id});event.stopPropagation();">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+function loadRec(id) {
+  const r = saved.find(x => x.id === id);
+  if (!r) return;
+  recipe = {name: r.name, items: r.items};
+  document.getElementById('recipe-name').value  = r.name;
+  document.getElementById('batch-units').value  = r.batch_units;
+  document.getElementById('labor-mins').value   = r.labor_mins;
+  document.getElementById('hourly').value       = r.hourly_rate;
+  document.getElementById('markup').value       = r.markup;
+  document.getElementById('fee').value          = r.platform_fee;
+  renderRI(); calc();
+  document.querySelectorAll('.saved-card').forEach(c => c.classList.remove('active'));
+  const card = document.getElementById('sc-'+id);
+  if (card) card.classList.add('active');
+}
+
+async function delRec(id) {
+  if (!confirm('Delete this recipe?')) return;
+  const {error} = await sb.from('recipes').delete().eq('id', id);
+  if (error) { toast('Error deleting', true); return; }
+  saved = saved.filter(r => r.id !== id);
+  renderSaved(); toast('Recipe deleted');
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer;
+function toast(msg, isErr=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = isErr ? '#c0392b' : 'var(--green)';
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
