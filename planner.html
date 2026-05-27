@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Batch Planner — Tallow Tools</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --green:#1a3a1a;--green-mid:#2d5a2d;--green-light:#3B6D11;--green-pale:#d4e8d4;--green-faint:#EAF3DE;--green-mid2:#97C459;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-border:#e8c47a;
+  --cream:#faf8f3;--linen:#ece8e0;--ink:#1c1c18;--muted:#6b6b5e;--border:#ddd8ce;--border2:#c8c4ba;
+  --white:#ffffff;--danger:#c0392b;--danger-bg:#fff0ee;
+  --radius:8px;--radius-lg:12px;
+}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--cream);color:var(--ink);font-size:15px;line-height:1.5;min-height:100vh;}
+.app{max-width:1100px;margin:0 auto;padding:28px 24px 60px;}
+
+.nav{display:flex;gap:8px;margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid var(--green);}
+.nav-brand{font-family:Georgia,serif;font-size:20px;font-style:italic;color:var(--green);margin-right:auto;align-self:center;}
+.nav-link{text-decoration:none;padding:7px 16px;border-radius:var(--radius);font-size:14px;font-weight:500;color:var(--muted);border:1px solid var(--border);background:var(--white);transition:all .15s;}
+.nav-link:hover{border-color:var(--green-mid2);color:var(--green);}
+.nav-link.active{background:var(--green);color:var(--green-pale);border-color:var(--green);}
+
+.page-title{font-family:Georgia,serif;font-size:26px;font-style:italic;color:var(--green);margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+
+.panel{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:20px;}
+.ph{background:var(--green);padding:13px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.ph-title{font-size:15px;font-weight:600;color:var(--green-pale);}
+.pb{padding:20px;}
+
+/* Goal bar */
+.goal-bar{background:var(--green);border-radius:var(--radius-lg);padding:24px 28px;margin-bottom:24px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;}
+.goal-label{font-size:13px;color:var(--green-pale);font-weight:500;white-space:nowrap;}
+.goal-input-wrap{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:var(--radius);padding:8px 16px;}
+.goal-input-wrap span{font-size:22px;color:#fff;font-weight:300;}
+.goal-input-wrap input{background:transparent;border:none;outline:none;font-size:28px;font-weight:600;color:#fff;width:120px;font-family:Georgia,serif;}
+.goal-input-wrap input::placeholder{color:rgba(255,255,255,.4);}
+.goal-period{display:flex;gap:6px;}
+.period-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);border-radius:20px;padding:5px 14px;font-size:13px;cursor:pointer;transition:all .15s;font-family:inherit;}
+.period-btn.active{background:#fff;color:var(--green);font-weight:600;border-color:#fff;}
+.goal-result{margin-left:auto;text-align:right;}
+.goal-result-val{font-family:Georgia,serif;font-size:26px;font-weight:600;color:#fff;}
+.goal-result-sub{font-size:12px;color:rgba(212,232,212,.7);}
+
+/* Product mix */
+.product-row{display:grid;grid-template-columns:minmax(0,1fr) 80px 80px 80px;gap:12px;align-items:center;padding:14px 16px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;transition:all .15s;}
+.product-row:hover{border-color:var(--green-mid2);}
+.product-row.inactive{opacity:.5;}
+.product-name{font-size:14px;font-weight:600;color:var(--ink);}
+.product-meta{font-size:12px;color:var(--muted);margin-top:1px;}
+.product-toggle{width:36px;height:20px;border-radius:10px;background:var(--border2);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+.product-toggle.on{background:var(--green-light);}
+.product-toggle::after{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left .2s;}
+.product-toggle.on::after{left:19px;}
+.mix-input{border:1px solid var(--border2);border-radius:var(--radius);padding:6px 8px;font-size:14px;font-weight:600;text-align:center;background:var(--white);color:var(--ink);width:100%;outline:none;}
+.mix-input:focus{border-color:var(--green-light);}
+.col-header{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:center;}
+
+/* Results */
+.results-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.metric{background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;text-align:center;}
+.metric.hi{background:var(--green);border-color:var(--green);}
+.metric.amber{background:var(--amber);border-color:var(--amber);}
+.metric-lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.metric.hi .metric-lbl,.metric.amber .metric-lbl{color:rgba(255,255,255,.65);}
+.metric-val{font-family:Georgia,serif;font-size:26px;color:var(--ink);line-height:1;}
+.metric.hi .metric-val,.metric.amber .metric-val{color:#fff;}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+.metric.hi .metric-sub,.metric.amber .metric-sub{color:rgba(255,255,255,.55);}
+
+/* Plan table */
+.plan-table{width:100%;border-collapse:collapse;}
+.plan-table th{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:0 0 10px;border-bottom:1px solid var(--border);}
+.plan-table th:not(:first-child){text-align:right;}
+.plan-table td{padding:12px 0;font-size:14px;border-bottom:1px solid var(--linen);vertical-align:middle;}
+.plan-table td:not(:first-child){text-align:right;color:var(--muted);}
+.plan-table tr:last-child td{border-bottom:none;font-weight:700;font-size:15px;color:var(--green-light);}
+.plan-table .product-col{font-weight:600;color:var(--ink);}
+.plan-table .units-col{font-size:18px;font-weight:700;color:var(--green-light);font-family:Georgia,serif;}
+
+/* Progress bar */
+.progress-wrap{margin-top:20px;}
+.progress-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px;}
+.progress-bar-bg{height:8px;background:var(--linen);border-radius:4px;overflow:hidden;}
+.progress-bar-fill{height:100%;background:var(--green-light);border-radius:4px;transition:width .5s ease;}
+
+/* Time estimate */
+.time-card{background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.time-icon{font-size:28px;}
+.time-text{flex:1;}
+.time-title{font-weight:700;font-size:14px;color:var(--amber);}
+.time-detail{font-size:13px;color:#633806;margin-top:2px;}
+
+.sec-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 10px;}
+.divider{border:none;border-top:1px solid var(--border);margin:18px 0;}
+.empty-state{text-align:center;padding:32px 16px;color:var(--muted);font-size:14px;}
+.empty-icon{font-size:32px;margin-bottom:8px;}
+
+.btn{border-radius:var(--radius);padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;font-family:inherit;white-space:nowrap;border:none;}
+.btn-green{background:var(--green);color:var(--green-pale);}
+.btn-green:hover{background:var(--green-mid);}
+.btn-sm{padding:6px 13px;font-size:13px;}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--ink);}
+.btn-outline:hover{background:var(--linen);}
+.btn-ghost{background:transparent;border:1px solid rgba(212,232,212,.35);color:rgba(212,232,212,.8);}
+.btn-ghost:hover{background:rgba(255,255,255,.1);}
+
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.15);border-top-color:var(--green);border-radius:50%;animation:spin .6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+@media(max-width:700px){
+  .results-grid{grid-template-columns:1fr 1fr;}
+  .product-row{grid-template-columns:minmax(0,1fr) 60px 60px 60px;gap:8px;}
+  .goal-bar{flex-direction:column;align-items:flex-start;}
+  .goal-result{margin-left:0;}
+}
+@media print{
+  .nav,.goal-bar,.btn{display:none!important;}
+  body{background:#fff;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <nav class="nav">
+    <div class="nav-brand">Tallow Tools</div>
+    <a href="index.html" class="nav-link">&#9881; Cost Calculator</a>
+    <a href="lye.html" class="nav-link">&#9879; Lye Calculator</a>
+    <a href="label.html" class="nav-link">&#127991; Label Generator</a>
+    <a href="planner.html" class="nav-link active">&#128197; Batch Planner</a>
+  </nav>
+
+  <div class="page-title">Batch Planner</div>
+  <div class="page-sub">Set a revenue goal and see exactly how much to make — units, batches, time, and profit.</div>
+
+  <!-- Goal bar -->
+  <div class="goal-bar">
+    <div class="goal-label">I want to make</div>
+    <div class="goal-input-wrap">
+      <span>$</span>
+      <input type="number" id="goal" value="500" min="0" step="50" oninput="calc()" placeholder="500" />
+    </div>
+    <div class="goal-label">in</div>
+    <div class="goal-period">
+      <button class="period-btn active" onclick="setPeriod('weekend',this)">a weekend</button>
+      <button class="period-btn" onclick="setPeriod('week',this)">a week</button>
+      <button class="period-btn" onclick="setPeriod('month',this)">a month</button>
+    </div>
+    <div class="goal-result">
+      <div class="goal-result-val" id="goal-units-total">— units</div>
+      <div class="goal-result-sub" id="goal-profit-total">— profit</div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading-state" style="text-align:center;padding:40px;color:var(--muted);">
+    <div class="spinner" style="width:24px;height:24px;margin:0 auto 12px;"></div>
+    Loading your recipes from Supabase...
+  </div>
+
+  <!-- Main content (hidden until loaded) -->
+  <div id="main-content" style="display:none;">
+
+    <!-- Product mix -->
+    <div class="panel">
+      <div class="ph">
+        <div class="ph-title">Product mix</div>
+        <div id="mix-warning" style="font-size:12px;color:#FAEEDA;display:none;">Mix must add up to 100%</div>
+      </div>
+      <div class="pb">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 80px 80px 80px;gap:12px;padding:0 16px 8px;">
+          <div></div>
+          <div class="col-header">Active</div>
+          <div class="col-header">Mix %</div>
+          <div class="col-header">Price ($)</div>
+        </div>
+        <div id="product-list"></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:8px;font-style:italic;">Mix % = what portion of your total units this product makes up. Must total 100% across active products.</div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results-section">
+      <div class="results-grid" id="metrics-row"></div>
+      <div class="panel">
+        <div class="ph">
+          <div class="ph-title">Production plan</div>
+          <button class="btn btn-ghost btn-sm" onclick="window.print()">&#128438; Print plan</button>
+        </div>
+        <div class="pb">
+          <table class="plan-table" id="plan-table"></table>
+          <div id="progress-section" class="progress-wrap"></div>
+          <div id="time-card" class="time-card" style="margin-top:16px;"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- No recipes state -->
+  <div id="no-recipes" style="display:none;">
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      No saved recipes found. <a href="index.html" style="color:var(--green-light);">Go to the Cost Calculator</a> to create and save some recipes first.
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://npsqnfsluoyaibbbpwhv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wc3FuZnNsdW95YWliYmJwd2h2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzE0NjAsImV4cCI6MjA4ODUwNzQ2MH0.yzc4prmPHcbzL3dBvrd8BndYctZq1bkSyqBb4BvteWw';
+
+let products = []; // {id, name, cost_per_unit, online_price, profit_per_unit, batch_units, labor_mins, active, mix, price}
+let period = 'weekend';
+
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const {data, error} = await sb.from('recipes').select('*').order('name');
+    if (error || !data || !data.length) {
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('no-recipes').style.display = 'block';
+      return;
+    }
+    products = data.map((r, i) => ({
+      id: r.id,
+      name: r.name,
+      cost_per_unit: Number(r.cost_per_unit) || 0,
+      online_price: Number(r.online_price) || 0,
+      profit_per_unit: Number(r.profit_per_unit) || 0,
+      batch_units: Number(r.batch_units) || 12,
+      labor_mins: Number(r.labor_mins) || 60,
+      active: true,
+      mix: i === 0 ? 100 : 0,
+      price: Number(r.online_price) || 0,
+    }));
+    // Distribute mix evenly across all products
+    const share = Math.floor(100 / products.length);
+    products.forEach((p, i) => p.mix = i === products.length - 1 ? 100 - share * (products.length - 1) : share);
+
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+    renderProducts();
+    calc();
+  } catch(e) {
+    document.getElementById('loading-state').innerHTML = '<div style="color:var(--danger);">Could not connect to database. Check your Supabase credentials.</div>';
+  }
+});
+
+function setPeriod(p, btn) {
+  period = p;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  calc();
+}
+
+function renderProducts() {
+  const el = document.getElementById('product-list');
+  el.innerHTML = products.map((p, i) => `
+    <div class="product-row ${p.active ? '' : 'inactive'}" id="pr-${i}">
+      <div>
+        <div class="product-name">${esc(p.name)}</div>
+        <div class="product-meta">$${p.cost_per_unit.toFixed(2)} cost · $${p.online_price.toFixed(2)} online · $${p.profit_per_unit.toFixed(2)} profit</div>
+      </div>
+      <div style="display:flex;justify-content:center;">
+        <button class="product-toggle ${p.active ? 'on' : ''}" onclick="toggleProduct(${i})" title="${p.active ? 'Disable' : 'Enable'}"></button>
+      </div>
+      <input class="mix-input" type="number" value="${p.mix}" min="0" max="100" step="5"
+        onchange="updMix(${i},parseInt(this.value)||0)" ${p.active ? '' : 'disabled'} />
+      <input class="mix-input" type="number" value="${p.price.toFixed(2)}" min="0" step="0.50"
+        onchange="updPrice(${i},parseFloat(this.value)||0)" />
+    </div>`).join('');
+}
+
+function toggleProduct(i) {
+  products[i].active = !products[i].active;
+  if (!products[i].active) products[i].mix = 0;
+  // Redistribute mix
+  const active = products.filter(p => p.active);
+  if (active.length) {
+    const total = active.reduce((s,p) => s+p.mix, 0);
+    if (total === 0) {
+      const share = Math.floor(100 / active.length);
+      active.forEach((p, j) => p.mix = j === active.length - 1 ? 100 - share * (active.length - 1) : share);
+    }
+  }
+  renderProducts(); calc();
+}
+
+function updMix(i, v) { products[i].mix = v; renderProducts(); calc(); }
+function updPrice(i, v) { products[i].price = v; calc(); }
+
+function calc() {
+  const goal = parseFloat(document.getElementById('goal').value) || 0;
+  const active = products.filter(p => p.active);
+  if (!active.length) return;
+
+  const totalMix = active.reduce((s,p) => s+p.mix, 0);
+  const warn = document.getElementById('mix-warning');
+  warn.style.display = totalMix !== 100 ? 'block' : 'none';
+  if (totalMix !== 100 && totalMix > 0) {
+    // Auto-normalize quietly for calc purposes
+  }
+
+  // Calculate units needed per product to hit goal
+  // Weighted average price
+  let planRows = active.map(p => {
+    const pct = totalMix > 0 ? p.mix / totalMix : 1 / active.length;
+    const revenueFromThis = goal * pct;
+    const unitsNeeded = Math.ceil(revenueFromThis / (p.price || p.online_price || 1));
+    const batchesNeeded = Math.ceil(unitsNeeded / p.batch_units);
+    const totalRevenue = unitsNeeded * (p.price || p.online_price);
+    const totalCost = unitsNeeded * p.cost_per_unit;
+    const totalProfit = unitsNeeded * p.profit_per_unit;
+    const totalLaborMins = batchesNeeded * p.labor_mins;
+    return {
+      ...p, pct, unitsNeeded, batchesNeeded,
+      totalRevenue, totalCost, totalProfit, totalLaborMins
+    };
+  });
+
+  const totalUnits   = planRows.reduce((s,r) => s+r.unitsNeeded, 0);
+  const totalRev     = planRows.reduce((s,r) => s+r.totalRevenue, 0);
+  const totalCost    = planRows.reduce((s,r) => s+r.totalCost, 0);
+  const totalProfit  = planRows.reduce((s,r) => s+r.totalProfit, 0);
+  const totalLabor   = planRows.reduce((s,r) => s+r.totalLaborMins, 0);
+  const totalBatches = planRows.reduce((s,r) => s+r.batchesNeeded, 0);
+
+  // Update goal bar
+  document.getElementById('goal-units-total').textContent = totalUnits + ' units total';
+  document.getElementById('goal-profit-total').textContent = '$' + totalProfit.toFixed(0) + ' profit · $' + totalRev.toFixed(0) + ' revenue';
+
+  // Metrics
+  const fmt = v => '$' + v.toFixed(0);
+  document.getElementById('metrics-row').innerHTML = `
+    <div class="metric hi">
+      <div class="metric-lbl">Units to make</div>
+      <div class="metric-val">${totalUnits}</div>
+      <div class="metric-sub">across ${totalBatches} batch${totalBatches !== 1 ? 'es' : ''}</div>
+    </div>
+    <div class="metric">
+      <div class="metric-lbl">Total revenue</div>
+      <div class="metric-val">${fmt(totalRev)}</div>
+      <div class="metric-sub">if all units sell</div>
+    </div>
+    <div class="metric">
+      <div class="metric-lbl">Total cost</div>
+      <div class="metric-val">${fmt(totalCost)}</div>
+      <div class="metric-sub">ingredients + labor</div>
+    </div>
+    <div class="metric hi">
+      <div class="metric-lbl">Total profit</div>
+      <div class="metric-val">${fmt(totalProfit)}</div>
+      <div class="metric-sub">${totalRev > 0 ? ((totalProfit/totalRev)*100).toFixed(0) : 0}% margin</div>
+    </div>`;
+
+  // Plan table
+  document.getElementById('plan-table').innerHTML = `
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Units to make</th>
+        <th>Batches</th>
+        <th>Revenue</th>
+        <th>Cost</th>
+        <th>Profit</th>
+        <th>Labor time</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${planRows.map(r => `
+        <tr>
+          <td class="product-col">${esc(r.name)}</td>
+          <td class="units-col">${r.unitsNeeded}</td>
+          <td>${r.batchesNeeded} × ${r.batch_units} units</td>
+          <td>$${r.totalRevenue.toFixed(0)}</td>
+          <td>$${r.totalCost.toFixed(0)}</td>
+          <td style="color:var(--green-light);font-weight:600;">$${r.totalProfit.toFixed(0)}</td>
+          <td>${fmtTime(r.totalLaborMins)}</td>
+        </tr>`).join('')}
+      <tr>
+        <td class="product-col">Total</td>
+        <td class="units-col">${totalUnits}</td>
+        <td>${totalBatches} batches</td>
+        <td>$${totalRev.toFixed(0)}</td>
+        <td>$${totalCost.toFixed(0)}</td>
+        <td>$${totalProfit.toFixed(0)}</td>
+        <td>${fmtTime(totalLabor)}</td>
+      </tr>
+    </tbody>`;
+
+  // Progress bar toward goal
+  const progressPct = Math.min((totalRev / (goal || 1)) * 100, 100);
+  document.getElementById('progress-section').innerHTML = `
+    <div class="progress-label">
+      <span>Revenue toward $${goal} goal</span>
+      <span>$${totalRev.toFixed(0)} / $${goal}</span>
+    </div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" style="width:${progressPct.toFixed(1)}%"></div>
+    </div>`;
+
+  // Time estimate
+  const periodLabel = period === 'weekend' ? 'weekend session' : period === 'week' ? 'week' : 'month';
+  const totalHours = totalLabor / 60;
+  const hoursPerDay = period === 'weekend' ? 4 : period === 'week' ? 2 : 1;
+  const daysNeeded = Math.ceil(totalHours / hoursPerDay);
+  document.getElementById('time-card').innerHTML = `
+    <div class="time-icon">⏱️</div>
+    <div class="time-text">
+      <div class="time-title">Total active labor: ${fmtTime(totalLabor)}</div>
+      <div class="time-detail">
+        At ${hoursPerDay} hrs/day, this is about <strong>${daysNeeded} day${daysNeeded !== 1 ? 's' : ''}</strong> of production work.
+        ${period === 'weekend' ? 'Fits in a weekend if you batch efficiently.' : ''}
+        Note: soap batches also need 4–6 weeks cure time before selling.
+      </div>
+    </div>`;
+}
+
+function fmtTime(mins) {
+  if (mins < 60) return mins + ' min';
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return h + 'h' + (m > 0 ? ' ' + m + 'm' : '');
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
