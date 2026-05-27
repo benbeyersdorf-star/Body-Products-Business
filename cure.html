@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cure Tracker — Tallow Tools</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --green:#1a3a1a;--green-mid:#2d5a2d;--green-light:#3B6D11;--green-pale:#d4e8d4;--green-faint:#EAF3DE;--green-mid2:#97C459;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-border:#e8c47a;
+  --cream:#faf8f3;--linen:#ece8e0;--ink:#1c1c18;--muted:#6b6b5e;--border:#ddd8ce;--border2:#c8c4ba;
+  --white:#fff;--danger:#c0392b;--danger-bg:#fff0ee;
+  --radius:8px;--radius-lg:12px;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:var(--ink);font-size:15px;line-height:1.5;min-height:100vh;}
+.app{max-width:1100px;margin:0 auto;padding:28px 24px 60px;}
+.nav{display:flex;gap:8px;margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid var(--green);flex-wrap:wrap;}
+.nav-brand{font-family:Georgia,serif;font-size:20px;font-style:italic;color:var(--green);margin-right:auto;align-self:center;}
+.nav-link{text-decoration:none;padding:7px 14px;border-radius:var(--radius);font-size:13px;font-weight:500;color:var(--muted);border:1px solid var(--border);background:var(--white);transition:all .15s;}
+.nav-link:hover{border-color:var(--green-mid2);color:var(--green);}
+.nav-link.active{background:var(--green);color:var(--green-pale);border-color:var(--green);}
+.page-title{font-family:Georgia,serif;font-size:26px;font-style:italic;color:var(--green);margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.panel{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:20px;}
+.ph{background:var(--green);padding:13px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.ph-title{font-size:15px;font-weight:600;color:var(--green-pale);}
+.badge{font-size:11px;padding:3px 10px;border-radius:12px;font-weight:600;}
+.badge-ready{background:var(--green-faint);color:var(--green-light);}
+.badge-curing{background:var(--amber-bg);color:var(--amber);}
+.badge-sold{background:var(--linen);color:var(--muted);}
+.pb{padding:20px;}
+.two-col{display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;align-items:start;}
+.field{margin-bottom:12px;}
+.field label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px;font-weight:500;}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--border2);border-radius:var(--radius);padding:8px 11px;font-size:14px;background:var(--white);color:var(--ink);outline:none;font-family:inherit;}
+.field input:focus,.field select:focus{border-color:var(--green-light);}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* Batch cards */
+.batch-card{background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;transition:border-color .15s;}
+.batch-card.ready{border-left:4px solid var(--green-light);}
+.batch-card.curing{border-left:4px solid var(--amber);}
+.batch-card.sold-out{opacity:.5;}
+.batch-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;}
+.batch-name{font-size:14px;font-weight:600;color:var(--ink);}
+.batch-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+.batch-actions{display:flex;gap:6px;margin-top:10px;}
+
+/* Progress bar */
+.cure-bar-wrap{height:6px;background:var(--linen);border-radius:3px;overflow:hidden;margin:6px 0 4px;}
+.cure-bar{height:100%;border-radius:3px;transition:width .4s;}
+.cure-bar.ready{background:var(--green-light);}
+.cure-bar.curing{background:var(--amber);}
+.cure-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);}
+
+/* Summary */
+.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.metric{background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;text-align:center;}
+.metric.hi{background:var(--green);border-color:var(--green);}
+.metric-lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+.metric.hi .metric-lbl{color:rgba(212,232,212,.65);}
+.metric-val{font-family:Georgia,serif;font-size:24px;color:var(--ink);line-height:1;}
+.metric.hi .metric-val{color:#fff;}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+
+.btn{border-radius:var(--radius);padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s;font-family:inherit;white-space:nowrap;border:none;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-green{background:var(--green);color:var(--green-pale);}
+.btn-green:hover:not(:disabled){background:var(--green-mid);}
+.btn-sm{padding:5px 11px;font-size:12px;}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--ink);}
+.btn-outline:hover{background:var(--linen);}
+.btn-amber{background:var(--amber);color:var(--amber-bg);}
+.btn-danger-sm{background:transparent;border:1px solid #e8b0aa;color:var(--danger);font-size:12px;padding:4px 10px;border-radius:var(--radius);cursor:pointer;font-family:inherit;}
+
+.empty-state{text-align:center;padding:30px;color:var(--muted);font-size:14px;}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--green);color:#fff;padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:500;opacity:0;transform:translateY(8px);transition:all .25s;z-index:999;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+.tab-row{display:flex;gap:6px;margin-bottom:16px;}
+.tab{background:transparent;border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-size:12px;cursor:pointer;color:var(--muted);font-family:inherit;}
+.tab.active{background:var(--green);border-color:var(--green);color:#fff;font-weight:600;}
+@media(max-width:700px){.two-col{grid-template-columns:1fr;}.summary-grid{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<div class="app">
+  <nav class="nav">
+    <div class="nav-brand">Tallow Tools</div>
+    <a href="index.html" class="nav-link">&#9881; Cost</a>
+    <a href="lye.html" class="nav-link">&#9879; Lye</a>
+    <a href="label.html" class="nav-link">&#127991; Labels</a>
+    <a href="planner.html" class="nav-link">&#128197; Planner</a>
+    <a href="sales.html" class="nav-link">&#128200; Sales</a>
+    <a href="cure.html" class="nav-link active">&#9201; Cure</a>
+    <a href="inventory.html" class="nav-link">&#128230; Inventory</a>
+  </nav>
+  <div class="page-title">Cure Date Tracker</div>
+  <div class="page-sub">Log soap batches and see exactly when they're ready to sell.</div>
+
+  <div class="summary-grid">
+    <div class="metric hi"><div class="metric-lbl">Ready to sell</div><div class="metric-val" id="m-ready">—</div><div class="metric-sub">bars available</div></div>
+    <div class="metric"><div class="metric-lbl">Curing</div><div class="metric-val" id="m-curing">—</div><div class="metric-sub">bars in progress</div></div>
+    <div class="metric"><div class="metric-lbl">Next ready</div><div class="metric-val" id="m-next" style="font-size:16px;">—</div><div class="metric-sub" id="m-next-sub"></div></div>
+  </div>
+
+  <div class="two-col">
+    <!-- Log batch -->
+    <div class="panel">
+      <div class="ph"><div class="ph-title">Log a new batch</div></div>
+      <div class="pb">
+        <div class="field"><label>Batch name</label><input id="b-name" placeholder="e.g. Tallow Lavender Soap #3" /></div>
+        <div class="field"><label>Recipe (optional)</label><select id="b-recipe"><option value="">— no recipe —</option></select></div>
+        <div class="field-row">
+          <div class="field"><label>Number of bars</label><input type="number" id="b-size" value="12" min="1" /></div>
+          <div class="field"><label>Date made</label><input type="date" id="b-date" /></div>
+        </div>
+        <div class="field"><label>Cure time (days)</label><input type="number" id="b-cure" value="28" min="1" /></div>
+        <div class="field"><label>Notes (optional)</label><input id="b-notes" placeholder="e.g. added extra lavender" /></div>
+        <button class="btn btn-green" style="width:100%;justify-content:center;" onclick="logBatch()" id="btn-log">+ Log batch</button>
+      </div>
+    </div>
+
+    <!-- Batches -->
+    <div>
+      <div class="tab-row">
+        <button class="tab active" onclick="setTab('all',this)">All batches</button>
+        <button class="tab" onclick="setTab('curing',this)">Curing</button>
+        <button class="tab" onclick="setTab('ready',this)">Ready ✓</button>
+      </div>
+      <div id="batches-body">
+        <div class="empty-state"><div style="font-size:28px;margin-bottom:8px;">🧼</div>No batches logged yet</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://npsqnfsluoyaibbbpwhv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wc3FuZnNsdW95YWliYmJwd2h2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzE0NjAsImV4cCI6MjA4ODUwNzQ2MH0.yzc4prmPHcbzL3dBvrd8BndYctZq1bkSyqBb4BvteWw';
+let sb, batches=[], curTab='all';
+
+window.addEventListener('DOMContentLoaded', async () => {
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  document.getElementById('b-date').value = new Date().toISOString().slice(0,10);
+  const {data:r} = await sb.from('recipes').select('id,name').order('name');
+  if (r) r.forEach(rec => {
+    const o = document.createElement('option'); o.value=rec.id; o.textContent=rec.name;
+    document.getElementById('b-recipe').appendChild(o);
+  });
+  await load();
+});
+
+async function load() {
+  const {data} = await sb.from('soap_batches').select('*').order('made_at',{ascending:false});
+  if (data) { batches = data; render(); }
+}
+
+async function logBatch() {
+  const name = document.getElementById('b-name').value.trim();
+  if (!name) { document.getElementById('b-name').focus(); return; }
+  const btn = document.getElementById('btn-log');
+  btn.disabled = true;
+  const {error} = await sb.from('soap_batches').insert({
+    name, recipe_id: parseInt(document.getElementById('b-recipe').value)||null,
+    batch_size: parseInt(document.getElementById('b-size').value)||12,
+    made_at: document.getElementById('b-date').value,
+    cure_days: parseInt(document.getElementById('b-cure').value)||28,
+    notes: document.getElementById('b-notes').value.trim()||null
+  });
+  btn.disabled = false;
+  if (error) { toast('Error saving batch', true); return; }
+  document.getElementById('b-name').value=''; document.getElementById('b-notes').value='';
+  await load(); toast('Batch logged ✓');
+}
+
+function setTab(t, btn) {
+  curTab=t;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function render() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const readyBars = batches.filter(b=>!b.sold_out&&new Date(b.ready_at)<=today).reduce((s,b)=>s+b.batch_size,0);
+  const curingBars = batches.filter(b=>!b.sold_out&&new Date(b.ready_at)>today).reduce((s,b)=>s+b.batch_size,0);
+  document.getElementById('m-ready').textContent = readyBars;
+  document.getElementById('m-curing').textContent = curingBars;
+  const nextBatch = batches.filter(b=>!b.sold_out&&new Date(b.ready_at)>today).sort((a,b)=>new Date(a.ready_at)-new Date(b.ready_at))[0];
+  if (nextBatch) {
+    const rd = new Date(nextBatch.ready_at);
+    const diff = Math.ceil((rd-today)/(1000*60*60*24));
+    document.getElementById('m-next').textContent = diff+'d';
+    document.getElementById('m-next-sub').textContent = rd.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  } else {
+    document.getElementById('m-next').textContent = '—';
+    document.getElementById('m-next-sub').textContent = 'no batches curing';
+  }
+
+  let data = [...batches];
+  if (curTab==='curing') data = data.filter(b=>!b.sold_out&&new Date(b.ready_at)>today);
+  if (curTab==='ready') data = data.filter(b=>!b.sold_out&&new Date(b.ready_at)<=today);
+
+  const el = document.getElementById('batches-body');
+  if (!data.length) { el.innerHTML='<div class="empty-state"><div style="font-size:28px;margin-bottom:8px;">🧼</div>No batches in this view</div>'; return; }
+
+  el.innerHTML = data.map(b => {
+    const madeDate = new Date(b.made_at);
+    const readyDate = new Date(b.ready_at);
+    const isReady = readyDate <= today;
+    const totalDays = b.cure_days;
+    const daysPassed = Math.min(Math.floor((today-madeDate)/(1000*60*60*24)), totalDays);
+    const pct = Math.min((daysPassed/totalDays)*100,100);
+    const daysLeft = Math.max(0, Math.ceil((readyDate-today)/(1000*60*60*24)));
+    return `<div class="batch-card ${isReady?'ready':'curing'} ${b.sold_out?'sold-out':''}">
+      <div class="batch-top">
+        <div>
+          <div class="batch-name">${esc(b.name)}</div>
+          <div class="batch-meta">${b.batch_size} bars · Made ${madeDate.toLocaleDateString('en-US',{month:'short',day:'numeric'})} · Ready ${readyDate.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
+          ${b.notes?`<div class="batch-meta" style="margin-top:2px;font-style:italic;">${esc(b.notes)}</div>`:''}
+        </div>
+        <span class="badge ${isReady?'badge-ready':b.sold_out?'badge-sold':'badge-curing'}">${b.sold_out?'Sold out':isReady?'✓ Ready':'Curing'}</span>
+      </div>
+      <div class="cure-bar-wrap"><div class="cure-bar ${isReady?'ready':'curing'}" style="width:${pct.toFixed(0)}%"></div></div>
+      <div class="cure-label">
+        <span>${daysPassed} / ${totalDays} days cured</span>
+        <span>${isReady?'Ready to sell!':daysLeft+' days left'}</span>
+      </div>
+      <div class="batch-actions">
+        ${!b.sold_out?`<button class="btn btn-sm btn-outline" onclick="markSoldOut(${b.id})">Mark sold out</button>`:''}
+        <button class="btn-danger-sm" onclick="deleteBatch(${b.id})">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function markSoldOut(id) {
+  await sb.from('soap_batches').update({sold_out:true}).eq('id',id);
+  await load(); toast('Marked as sold out');
+}
+async function deleteBatch(id) {
+  if (!confirm('Delete this batch?')) return;
+  await sb.from('soap_batches').delete().eq('id',id);
+  batches = batches.filter(b=>b.id!==id); render(); toast('Batch deleted');
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+let tt;
+function toast(msg,err=false){const el=document.getElementById('toast');el.textContent=msg;el.style.background=err?'#c0392b':'var(--green)';el.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2500);}
+</script>
+</body>
+</html>

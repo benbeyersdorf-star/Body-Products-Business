@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventory — Tallow Tools</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --green:#1a3a1a;--green-mid:#2d5a2d;--green-light:#3B6D11;--green-pale:#d4e8d4;--green-faint:#EAF3DE;--green-mid2:#97C459;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-border:#e8c47a;
+  --cream:#faf8f3;--linen:#ece8e0;--ink:#1c1c18;--muted:#6b6b5e;--border:#ddd8ce;--border2:#c8c4ba;
+  --white:#fff;--danger:#c0392b;--danger-bg:#fff0ee;
+  --radius:8px;--radius-lg:12px;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:var(--ink);font-size:15px;line-height:1.5;min-height:100vh;}
+.app{max-width:1100px;margin:0 auto;padding:28px 24px 60px;}
+.nav{display:flex;gap:8px;margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid var(--green);flex-wrap:wrap;}
+.nav-brand{font-family:Georgia,serif;font-size:20px;font-style:italic;color:var(--green);margin-right:auto;align-self:center;}
+.nav-link{text-decoration:none;padding:7px 14px;border-radius:var(--radius);font-size:13px;font-weight:500;color:var(--muted);border:1px solid var(--border);background:var(--white);transition:all .15s;}
+.nav-link:hover{border-color:var(--green-mid2);color:var(--green);}
+.nav-link.active{background:var(--green);color:var(--green-pale);border-color:var(--green);}
+.page-title{font-family:Georgia,serif;font-size:26px;font-style:italic;color:var(--green);margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.panel{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:20px;}
+.ph{background:var(--green);padding:13px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.ph-title{font-size:15px;font-weight:600;color:var(--green-pale);}
+.pb{padding:20px;}
+.two-col{display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;align-items:start;}
+.field{margin-bottom:12px;}
+.field label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px;font-weight:500;}
+.field input,.field select{width:100%;border:1px solid var(--border2);border-radius:var(--radius);padding:8px 11px;font-size:14px;background:var(--white);color:var(--ink);outline:none;font-family:inherit;}
+.field input:focus,.field select:focus{border-color:var(--green-light);}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* Alert banner */
+.alert-banner{background:var(--danger-bg);border:1px solid #e8b0aa;border-radius:var(--radius);padding:14px 18px;margin-bottom:20px;display:none;}
+.alert-banner.show{display:block;}
+.alert-title{font-weight:700;color:var(--danger);margin-bottom:6px;font-size:14px;}
+.alert-item{font-size:13px;color:#8b2020;display:flex;align-items:center;gap:6px;padding:2px 0;}
+
+/* Summary */
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+.metric{background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;text-align:center;}
+.metric.hi{background:var(--green);border-color:var(--green);}
+.metric.warn{background:#fff0ee;border-color:#e8b0aa;}
+.metric-lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+.metric.hi .metric-lbl{color:rgba(212,232,212,.65);}
+.metric.warn .metric-lbl{color:#c0392b;}
+.metric-val{font-family:Georgia,serif;font-size:24px;color:var(--ink);line-height:1;}
+.metric.hi .metric-val{color:#fff;}
+.metric.warn .metric-val{color:var(--danger);}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* Inventory grid */
+.inv-row{display:grid;grid-template-columns:minmax(0,1fr) 90px 90px 110px 110px 36px;gap:10px;align-items:center;padding:12px 14px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;}
+.inv-row.low{border-left:4px solid var(--danger);background:var(--danger-bg);}
+.inv-row.ok{border-left:4px solid var(--green-light);}
+.inv-name{font-size:14px;font-weight:600;color:var(--ink);}
+.inv-meta{font-size:12px;color:var(--muted);margin-top:1px;}
+.inv-input{border:1px solid var(--border2);border-radius:var(--radius);padding:6px 8px;font-size:14px;font-weight:600;text-align:center;background:var(--white);color:var(--ink);width:100%;outline:none;}
+.inv-input:focus{border-color:var(--green-light);}
+.inv-input.low{border-color:var(--danger);}
+.status-pill{display:inline-block;font-size:11px;padding:3px 10px;border-radius:10px;font-weight:600;}
+.status-pill.ok{background:var(--green-faint);color:var(--green-light);}
+.status-pill.low{background:var(--danger-bg);color:var(--danger);}
+.status-pill.out{background:var(--linen);color:var(--muted);}
+.del-btn{width:28px;height:28px;border-radius:50%;border:none;background:transparent;color:#ccc;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.del-btn:hover{background:var(--danger-bg);color:var(--danger);}
+.col-hdr{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:center;}
+
+.btn{border-radius:var(--radius);padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s;font-family:inherit;white-space:nowrap;border:none;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-green{background:var(--green);color:var(--green-pale);}
+.btn-green:hover:not(:disabled){background:var(--green-mid);}
+.btn-sm{padding:5px 11px;font-size:12px;}
+
+.empty-state{text-align:center;padding:30px;color:var(--muted);font-size:14px;}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--green);color:#fff;padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:500;opacity:0;transform:translateY(8px);transition:all .25s;z-index:999;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+@media(max-width:700px){.two-col{grid-template-columns:1fr;}.summary-grid{grid-template-columns:1fr 1fr;}.inv-row{grid-template-columns:minmax(0,1fr) 70px 70px 36px;}}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<div class="app">
+  <nav class="nav">
+    <div class="nav-brand">Tallow Tools</div>
+    <a href="index.html" class="nav-link">&#9881; Cost</a>
+    <a href="lye.html" class="nav-link">&#9879; Lye</a>
+    <a href="label.html" class="nav-link">&#127991; Labels</a>
+    <a href="planner.html" class="nav-link">&#128197; Planner</a>
+    <a href="sales.html" class="nav-link">&#128200; Sales</a>
+    <a href="cure.html" class="nav-link">&#9201; Cure</a>
+    <a href="inventory.html" class="nav-link active">&#128230; Inventory</a>
+  </nav>
+  <div class="page-title">Inventory</div>
+  <div class="page-sub">Track finished products on hand — get alerted when stock runs low.</div>
+
+  <!-- Low stock alert -->
+  <div class="alert-banner" id="alert-banner">
+    <div class="alert-title">⚠️ Low stock alert</div>
+    <div id="alert-items"></div>
+  </div>
+
+  <div class="summary-grid">
+    <div class="metric hi"><div class="metric-lbl">Total units</div><div class="metric-val" id="m-total">—</div><div class="metric-sub">on hand</div></div>
+    <div class="metric"><div class="metric-lbl">Products tracked</div><div class="metric-val" id="m-products">—</div><div class="metric-sub">SKUs</div></div>
+    <div class="metric warn" id="m-low-card"><div class="metric-lbl">Low stock</div><div class="metric-val" id="m-low">—</div><div class="metric-sub">need restocking</div></div>
+    <div class="metric"><div class="metric-lbl">Inventory value</div><div class="metric-val" id="m-value">—</div><div class="metric-sub">at cost</div></div>
+  </div>
+
+  <div class="two-col">
+    <!-- Add product -->
+    <div class="panel">
+      <div class="ph"><div class="ph-title">Add product</div></div>
+      <div class="pb">
+        <div class="field"><label>Product name</label><input id="i-name" placeholder="e.g. Whipped Tallow Moisturizer" /></div>
+        <div class="field"><label>Link to recipe (optional)</label><select id="i-recipe"><option value="">— no recipe —</option></select></div>
+        <div class="field-row">
+          <div class="field"><label>Units on hand</label><input type="number" id="i-units" value="0" min="0" /></div>
+          <div class="field"><label>Low stock alert at</label><input type="number" id="i-threshold" value="5" min="0" /></div>
+        </div>
+        <div class="field"><label>Cost per unit ($)</label><input type="number" id="i-cost" step="0.01" placeholder="0.00" /></div>
+        <button class="btn btn-green" style="width:100%;justify-content:center;" onclick="addProduct()" id="btn-add">+ Add product</button>
+      </div>
+    </div>
+
+    <!-- Inventory list -->
+    <div class="panel" style="margin-bottom:0;">
+      <div class="ph"><div class="ph-title">Stock on hand</div></div>
+      <div class="pb">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 90px 90px 110px 110px 36px;gap:10px;padding:0 14px 8px;">
+          <div></div>
+          <div class="col-hdr">On hand</div>
+          <div class="col-hdr">Alert at</div>
+          <div class="col-hdr">Status</div>
+          <div class="col-hdr">Value</div>
+          <div></div>
+        </div>
+        <div id="inv-list">
+          <div class="empty-state"><div style="font-size:28px;margin-bottom:8px;">📦</div>No products tracked yet</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://npsqnfsluoyaibbbpwhv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wc3FuZnNsdW95YWliYmJwd2h2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzE0NjAsImV4cCI6MjA4ODUwNzQ2MH0.yzc4prmPHcbzL3dBvrd8BndYctZq1bkSyqBb4BvteWw';
+let sb, items=[];
+
+window.addEventListener('DOMContentLoaded', async () => {
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const {data:r} = await sb.from('recipes').select('id,name,cost_per_unit').order('name');
+  if (r) r.forEach(rec => {
+    const o=document.createElement('option'); o.value=rec.id; o.textContent=rec.name;
+    o.dataset.cost=rec.cost_per_unit;
+    document.getElementById('i-recipe').appendChild(o);
+  });
+  document.getElementById('i-recipe').addEventListener('change', () => {
+    const opt = document.getElementById('i-recipe').options[document.getElementById('i-recipe').selectedIndex];
+    if (opt.dataset.cost) document.getElementById('i-cost').value = parseFloat(opt.dataset.cost).toFixed(2);
+    if (opt.textContent && opt.value) document.getElementById('i-name').value = opt.textContent;
+  });
+  await load();
+});
+
+async function load() {
+  const {data} = await sb.from('inventory').select('*').order('name');
+  if (data) { items=data; render(); }
+}
+
+async function addProduct() {
+  const name = document.getElementById('i-name').value.trim();
+  if (!name) { document.getElementById('i-name').focus(); return; }
+  const btn = document.getElementById('btn-add');
+  btn.disabled=true;
+  const {error} = await sb.from('inventory').insert({
+    name, recipe_id: parseInt(document.getElementById('i-recipe').value)||null,
+    units_on_hand: parseInt(document.getElementById('i-units').value)||0,
+    low_stock_threshold: parseInt(document.getElementById('i-threshold').value)||5,
+    unit_cost: parseFloat(document.getElementById('i-cost').value)||0
+  });
+  btn.disabled=false;
+  if (error) { toast('Error adding product', true); return; }
+  document.getElementById('i-name').value=''; document.getElementById('i-units').value=0;
+  await load(); toast('Product added ✓');
+}
+
+async function updUnits(id, v) {
+  await sb.from('inventory').update({units_on_hand:v, updated_at:new Date().toISOString()}).eq('id',id);
+  const item = items.find(i=>i.id===id); if(item){ item.units_on_hand=v; render(); }
+}
+
+async function delItem(id) {
+  if (!confirm('Remove this product?')) return;
+  await sb.from('inventory').delete().eq('id',id);
+  items=items.filter(i=>i.id!==id); render(); toast('Removed');
+}
+
+function render() {
+  const total = items.reduce((s,i)=>s+i.units_on_hand,0);
+  const lowItems = items.filter(i=>i.units_on_hand<=i.low_stock_threshold&&i.units_on_hand>=0);
+  const value = items.reduce((s,i)=>s+(i.units_on_hand*Number(i.unit_cost)),0);
+
+  document.getElementById('m-total').textContent = total;
+  document.getElementById('m-products').textContent = items.length;
+  document.getElementById('m-low').textContent = lowItems.length;
+  document.getElementById('m-value').textContent = '$'+value.toFixed(0);
+  document.getElementById('m-low-card').className = 'metric '+(lowItems.length>0?'warn':'');
+
+  // Alert banner
+  const banner = document.getElementById('alert-banner');
+  if (lowItems.length) {
+    banner.classList.add('show');
+    document.getElementById('alert-items').innerHTML = lowItems.map(i =>
+      `<div class="alert-item">⚠️ <strong>${esc(i.name)}</strong> — ${i.units_on_hand} unit${i.units_on_hand!==1?'s':''} left (alert threshold: ${i.low_stock_threshold})</div>`
+    ).join('');
+  } else { banner.classList.remove('show'); }
+
+  const el = document.getElementById('inv-list');
+  if (!items.length) { el.innerHTML='<div class="empty-state"><div style="font-size:28px;margin-bottom:8px;">📦</div>No products tracked yet</div>'; return; }
+
+  el.innerHTML = items.map(item => {
+    const isLow = item.units_on_hand <= item.low_stock_threshold;
+    const isOut = item.units_on_hand === 0;
+    const status = isOut ? 'Out of stock' : isLow ? 'Low stock' : 'In stock';
+    const statusClass = isOut ? 'out' : isLow ? 'low' : 'ok';
+    const itemValue = item.units_on_hand * Number(item.unit_cost);
+    return `<div class="inv-row ${isLow||isOut?'low':'ok'}">
+      <div>
+        <div class="inv-name">${esc(item.name)}</div>
+        <div class="inv-meta">$${Number(item.unit_cost).toFixed(2)} / unit · Last updated ${new Date(item.updated_at).toLocaleDateString()}</div>
+      </div>
+      <input class="inv-input ${isLow?'low':''}" type="number" value="${item.units_on_hand}" min="0"
+        onchange="updUnits(${item.id},parseInt(this.value)||0)" />
+      <input class="inv-input" type="number" value="${item.low_stock_threshold}" min="0"
+        onchange="updThreshold(${item.id},parseInt(this.value)||0)" />
+      <span class="status-pill ${statusClass}">${status}</span>
+      <span style="font-size:13px;color:var(--muted);text-align:center;">$${itemValue.toFixed(2)}</span>
+      <button class="del-btn" onclick="delItem(${item.id})">×</button>
+    </div>`;
+  }).join('');
+}
+
+async function updThreshold(id, v) {
+  await sb.from('inventory').update({low_stock_threshold:v}).eq('id',id);
+  const item=items.find(i=>i.id===id); if(item){item.low_stock_threshold=v; render();}
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+let tt;
+function toast(msg,err=false){const el=document.getElementById('toast');el.textContent=msg;el.style.background=err?'#c0392b':'var(--green)';el.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2500);}
+</script>
+</body>
+</html>
