@@ -10,7 +10,475 @@
   --green:#1a3a1a;--green-mid:#2d5a2d;--green-light:#3B6D11;--green-pale:#d4e8d4;--green-faint:#EAF3DE;--green-mid2:#97C459;
   --amber:#854F0B;--amber-bg:#FAEEDA;--amber-border:#e8c47a;
   --cream:#faf8f3;--linen:#ece8e0;--ink:#1c1c18;--muted:#6b6b5e;--border:#ddd8ce;--border2:#c8c4ba;
+  --white:#ffffff;--danger:#c0392b;--danger-bg:#fff0ee;<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lye Calculator — Tallow Tools</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --green:#1a3a1a;--green-mid:#2d5a2d;--green-light:#3B6D11;--green-pale:#d4e8d4;--green-faint:#EAF3DE;--green-mid2:#97C459;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-border:#e8c47a;
+  --cream:#faf8f3;--linen:#ece8e0;--ink:#1c1c18;--muted:#6b6b5e;--border:#ddd8ce;--border2:#c8c4ba;
   --white:#ffffff;--danger:#c0392b;--danger-bg:#fff0ee;
+  --radius:8px;--radius-lg:12px;
+}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--cream);color:var(--ink);font-size:15px;line-height:1.5;min-height:100vh;}
+
+.app{max-width:1100px;margin:0 auto;padding:28px 24px 60px;}
+
+/* Nav */
+.nav{display:flex;gap:8px;margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid var(--green);}
+.nav-brand{font-family:Georgia,serif;font-size:20px;font-style:italic;color:var(--green);margin-right:auto;align-self:center;}
+.nav-link{text-decoration:none;padding:7px 16px;border-radius:var(--radius);font-size:14px;font-weight:500;color:var(--muted);border:1px solid var(--border);background:var(--white);transition:all .15s;}
+.nav-link:hover{border-color:var(--green-mid2);color:var(--green);}
+.nav-link.active{background:var(--green);color:var(--green-pale);border-color:var(--green);}
+
+.page-title{font-family:Georgia,serif;font-size:26px;font-style:italic;color:var(--green);margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+
+/* Panel */
+.panel{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:20px;}
+.ph{background:var(--green);padding:13px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.ph-title{font-size:15px;font-weight:600;color:var(--green-pale);}
+.badge{font-size:11px;padding:3px 10px;border-radius:12px;background:var(--green-faint);color:var(--green-light);font-weight:600;}
+.pb{padding:20px;}
+
+/* Two col */
+.two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:20px;}
+
+/* Oil row */
+.oil-row{display:grid;grid-template-columns:minmax(0,1fr) 90px 90px 36px;gap:10px;align-items:center;padding:11px 14px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;}
+.oil-name{font-size:14px;font-weight:600;color:var(--ink);}
+.oil-sap{font-size:11px;color:var(--muted);margin-top:1px;}
+.oil-pct-wrap{display:flex;align-items:center;gap:4px;border:1px solid var(--border2);border-radius:var(--radius);padding:6px 10px;background:var(--white);}
+.oil-pct-wrap input{width:50px;border:none;outline:none;font-size:14px;font-weight:600;background:transparent;color:var(--ink);text-align:right;}
+.oil-pct-wrap span{font-size:13px;color:var(--muted);}
+.oil-oz-wrap{display:flex;align-items:center;gap:4px;border:1px solid var(--border2);border-radius:var(--radius);padding:6px 10px;background:var(--white);}
+.oil-oz-wrap input{width:50px;border:none;outline:none;font-size:14px;font-weight:600;background:transparent;color:var(--ink);text-align:right;}
+.oil-oz-wrap span{font-size:13px;color:var(--muted);}
+.del-btn{width:32px;height:32px;border-radius:50%;border:none;background:transparent;color:#bbb;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.del-btn:hover{background:var(--danger-bg);color:var(--danger);}
+
+/* Settings */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.field label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;font-weight:500;letter-spacing:.02em;}
+.field input,.field select{width:100%;border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;font-size:14px;background:var(--white);color:var(--ink);outline:none;font-family:inherit;}
+.field input:focus,.field select:focus{border-color:var(--green-light);}
+
+/* Results */
+.result-block{background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;}
+.result-block.hi{background:var(--green);border-color:var(--green);}
+.result-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.result-block.hi .result-label{color:rgba(212,232,212,.65);}
+.result-value{font-family:Georgia,serif;font-size:28px;color:var(--ink);line-height:1;}
+.result-block.hi .result-value{color:#fff;}
+.result-sub{font-size:12px;color:var(--muted);margin-top:3px;}
+.result-block.hi .result-sub{color:rgba(212,232,212,.55);}
+
+.results-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+
+/* Oil breakdown table */
+.oil-table{width:100%;border-collapse:collapse;}
+.oil-table th{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:0 0 8px;border-bottom:1px solid var(--border);}
+.oil-table th:not(:first-child){text-align:right;}
+.oil-table td{padding:8px 0;font-size:13px;border-bottom:1px solid var(--linen);vertical-align:middle;}
+.oil-table td:not(:first-child){text-align:right;color:var(--muted);}
+.oil-table tr:last-child td{border-bottom:none;font-weight:700;color:var(--green-light);}
+.oil-table .oil-col{font-weight:500;color:var(--ink);}
+
+/* Pct bar */
+.pct-bar-wrap{width:60px;height:5px;background:var(--linen);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin-left:6px;}
+.pct-bar{height:100%;background:var(--green-mid2);border-radius:3px;}
+
+/* Warning */
+.warning{background:#fff8e6;border:1px solid var(--amber-border);border-radius:var(--radius);padding:12px 16px;font-size:13px;color:var(--amber);margin-bottom:16px;display:none;}
+.warning.show{display:block;}
+
+/* Add oil */
+.add-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;margin-top:14px;padding-top:16px;border-top:1px solid var(--border);}
+.inp{border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;font-size:14px;background:var(--white);color:var(--ink);width:100%;outline:none;font-family:inherit;}
+.inp:focus{border-color:var(--green-light);}
+
+/* Buttons */
+.btn{border-radius:var(--radius);padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;font-family:inherit;white-space:nowrap;border:none;}
+.btn-green{background:var(--green);color:var(--green-pale);}
+.btn-green:hover{background:var(--green-mid);}
+.btn-amber{background:var(--amber);color:var(--amber-bg);}
+.btn-amber:hover{opacity:.9;}
+.btn-sm{padding:6px 13px;font-size:13px;}
+.btn-ghost{background:transparent;border:1px solid rgba(212,232,212,.35);color:rgba(212,232,212,.8);}
+.btn-ghost:hover{background:rgba(255,255,255,.1);}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--ink);}
+.btn-outline:hover{background:var(--linen);}
+
+.sec-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:16px 0 9px;}
+.divider{border:none;border-top:1px solid var(--border);margin:18px 0;}
+.scroll{max-height:360px;overflow-y:auto;}
+
+/* Presets */
+.preset-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.preset-btn{background:var(--green-faint);border:1px solid var(--green-mid2);color:var(--green-light);border-radius:20px;padding:5px 14px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;}
+.preset-btn:hover{background:var(--green-pale);}
+
+/* Superfat note */
+.sf-note{font-size:12px;color:var(--muted);margin-top:4px;font-style:italic;}
+
+/* Print */
+@media print{
+  .nav,.add-row,.preset-row,.del-btn,.btn{display:none!important;}
+  body{background:#fff;}
+}
+
+@media(max-width:700px){
+  .two-col{grid-template-columns:1fr;}
+  .oil-row{grid-template-columns:minmax(0,1fr) 80px 36px;}
+  .oil-oz-wrap{display:none;}
+  .results-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="nav-brand">Tallow Tools</div>
+    <a href="index.html" class="nav-link">&#9881; Cost Calculator</a>
+    <a href="lye.html" class="nav-link active">&#9879; Lye Calculator</a>
+    <a href="label.html" class="nav-link">&#127991; Label Generator</a>
+    <a href="planner.html" class="nav-link">&#128197; Batch Planner</a>
+  </nav>
+
+  <div class="page-title">Lye Calculator</div>
+  <div class="page-sub">Enter your oil blend and batch size — get exact lye and water amounts for a perfect bar soap batch.</div>
+
+  <div class="two-col">
+
+    <!-- LEFT: Oil blend builder -->
+    <div>
+      <div class="panel">
+        <div class="ph">
+          <div class="ph-title">Oil Blend</div>
+          <span class="badge" id="pct-total">0% used</span>
+        </div>
+        <div class="pb">
+
+          <!-- Presets -->
+          <div class="sec-label" style="margin-top:0;">Quick presets</div>
+          <div class="preset-row">
+            <button class="preset-btn" onclick="loadPreset('tallow100')">100% Tallow</button>
+            <button class="preset-btn" onclick="loadPreset('tallow80olive20')">80% Tallow / 20% Olive</button>
+            <button class="preset-btn" onclick="loadPreset('tallow70coconut20olive10')">70% Tallow / 20% Coconut / 10% Olive</button>
+          </div>
+
+          <div class="warning" id="pct-warning">&#9888; Oil percentages must add up to exactly 100% before calculating.</div>
+
+          <div class="scroll" id="oil-list"></div>
+
+          <!-- Add custom oil -->
+          <div class="add-row">
+            <select class="inp" id="oil-pick">
+              <option value="">— add an oil —</option>
+            </select>
+            <button class="btn btn-green btn-sm" onclick="addOil()">+ Add</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Batch settings -->
+      <div class="panel">
+        <div class="ph"><div class="ph-title">Batch Settings</div></div>
+        <div class="pb">
+          <div class="settings-grid">
+            <div class="field">
+              <label>Total oil weight (oz)</label>
+              <input type="number" id="batch-oz" value="24" min="1" step="0.5" oninput="calc()" />
+            </div>
+            <div class="field">
+              <label>Superfat %</label>
+              <input type="number" id="superfat" value="5" min="0" max="20" step="0.5" oninput="calc()" />
+            </div>
+            <div class="field">
+              <label>Water as % of oils</label>
+              <input type="number" id="water-pct" value="38" min="25" max="50" step="1" oninput="calc()" />
+            </div>
+            <div class="field">
+              <label>Lye purity %</label>
+              <input type="number" id="lye-purity" value="99" min="90" max="100" step="0.5" oninput="calc()" />
+            </div>
+          </div>
+          <div class="sf-note">5% superfat recommended for tallow soap — leaves a small amount of unsaponified oil for skin conditioning.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Results -->
+    <div>
+      <div class="panel">
+        <div class="ph">
+          <div class="ph-title">Recipe Output</div>
+          <button class="btn btn-ghost btn-sm" onclick="window.print()">&#128438; Print</button>
+        </div>
+        <div class="pb" id="results-body">
+          <div style="text-align:center;padding:40px 16px;color:var(--muted);">
+            <div style="font-size:32px;margin-bottom:8px;">🧼</div>
+            Build your oil blend to see the lye and water amounts
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Oil database (NaOH SAP values) ────────────────────────────────────────
+const OIL_DB = [
+  {id:'tallow',      name:'Beef tallow',       sap:0.1410, notes:'Hard, stable, gentle lather'},
+  {id:'coconut',     name:'Coconut oil',        sap:0.1900, notes:'Hard bar, fluffy lather, cleansing'},
+  {id:'palm',        name:'Palm oil',           sap:0.1410, notes:'Hard bar, stable lather'},
+  {id:'olive',       name:'Olive oil',          sap:0.1340, notes:'Conditioning, mild, soft bar'},
+  {id:'castor',      name:'Castor oil',         sap:0.1280, notes:'Boosts lather, max 10%'},
+  {id:'lard',        name:'Lard',               sap:0.1380, notes:'Similar to tallow, creamy lather'},
+  {id:'avocado',     name:'Avocado oil',        sap:0.1330, notes:'Conditioning, moisturizing'},
+  {id:'sunflower',   name:'Sunflower oil',      sap:0.1340, notes:'Lightweight, conditioning'},
+  {id:'shea',        name:'Shea butter',        sap:0.1280, notes:'Conditioning, hardening'},
+  {id:'cocoa',       name:'Cocoa butter',       sap:0.1370, notes:'Hard bar, mild chocolate scent'},
+  {id:'jojoba',      name:'Jojoba oil',         sap:0.0690, notes:'Conditioning, long shelf life'},
+  {id:'sweet-almond',name:'Sweet almond oil',   sap:0.1360, notes:'Mild, conditioning'},
+  {id:'hemp',        name:'Hemp seed oil',      sap:0.1345, notes:'Conditioning, earthy'},
+  {id:'neem',        name:'Neem oil',           sap:0.1387, notes:'Antibacterial properties'},
+];
+
+// ── State ──────────────────────────────────────────────────────────────────
+let oils = []; // {id, name, sap, notes, pct}
+
+// ── Presets ────────────────────────────────────────────────────────────────
+const PRESETS = {
+  tallow100: [
+    {id:'tallow', pct:100}
+  ],
+  tallow80olive20: [
+    {id:'tallow', pct:80},
+    {id:'olive',  pct:20}
+  ],
+  tallow70coconut20olive10: [
+    {id:'tallow',  pct:70},
+    {id:'coconut', pct:20},
+    {id:'olive',   pct:10}
+  ],
+};
+
+function loadPreset(key) {
+  oils = PRESETS[key].map(p => {
+    const db = OIL_DB.find(o => o.id === p.id);
+    return {...db, pct: p.pct};
+  });
+  renderOils(); calc();
+}
+
+// ── Oil list ───────────────────────────────────────────────────────────────
+function renderOils() {
+  const el = document.getElementById('oil-list');
+  const total = oils.reduce((s,o) => s+o.pct, 0);
+  const badge = document.getElementById('pct-total');
+  badge.textContent = total.toFixed(0) + '% used';
+  badge.style.background = Math.abs(total-100) < 0.1 ? '#EAF3DE' : '#fff0ee';
+  badge.style.color = Math.abs(total-100) < 0.1 ? '#27500A' : '#c0392b';
+
+  document.getElementById('pct-warning').classList.toggle('show', oils.length > 0 && Math.abs(total-100) > 0.1);
+
+  if (!oils.length) {
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:14px;">Add oils above or pick a preset</div>';
+    return;
+  }
+
+  const batchOz = parseFloat(document.getElementById('batch-oz').value) || 24;
+  el.innerHTML = oils.map((o, i) => {
+    const oz = (o.pct / 100) * batchOz;
+    return `<div class="oil-row">
+      <div>
+        <div class="oil-name">${o.name}</div>
+        <div class="oil-sap">SAP: ${o.sap.toFixed(4)} · ${o.notes}</div>
+      </div>
+      <div class="oil-pct-wrap">
+        <input type="number" value="${o.pct}" min="0" max="100" step="1"
+          onchange="updOil(${i},'pct',parseFloat(this.value)||0)" />
+        <span>%</span>
+      </div>
+      <div class="oil-oz-wrap">
+        <input type="number" value="${oz.toFixed(1)}" min="0" step="0.1"
+          onchange="updOilOz(${i},parseFloat(this.value)||0)" />
+        <span>oz</span>
+      </div>
+      <button class="del-btn" onclick="delOil(${i})">×</button>
+    </div>`;
+  }).join('');
+}
+
+function addOil() {
+  const sel = document.getElementById('oil-pick');
+  const id = sel.value;
+  if (!id) return;
+  if (oils.find(o => o.id === id)) return;
+  const db = OIL_DB.find(o => o.id === id);
+  if (!db) return;
+  const remaining = Math.max(0, 100 - oils.reduce((s,o) => s+o.pct, 0));
+  oils.push({...db, pct: remaining});
+  sel.value = '';
+  renderOils(); calc();
+}
+
+function updOil(i, k, v) {
+  oils[i][k] = v;
+  renderOils(); calc();
+}
+
+function updOilOz(i, oz) {
+  const batchOz = parseFloat(document.getElementById('batch-oz').value) || 24;
+  oils[i].pct = (oz / batchOz) * 100;
+  renderOils(); calc();
+}
+
+function delOil(i) {
+  oils.splice(i, 1);
+  renderOils(); calc();
+}
+
+// ── Populate oil picker ────────────────────────────────────────────────────
+function populatePicker() {
+  const sel = document.getElementById('oil-pick');
+  sel.innerHTML = '<option value="">— add an oil —</option>' +
+    OIL_DB.map(o => `<option value="${o.id}">${o.name} (SAP ${o.sap.toFixed(4)})</option>`).join('');
+}
+
+// ── Calculate ──────────────────────────────────────────────────────────────
+function calc() {
+  const body = document.getElementById('results-body');
+  if (!oils.length) {
+    body.innerHTML = '<div style="text-align:center;padding:40px 16px;color:var(--muted);"><div style="font-size:32px;margin-bottom:8px;">🧼</div>Build your oil blend to see the lye and water amounts</div>';
+    return;
+  }
+
+  const total = oils.reduce((s,o) => s+o.pct, 0);
+  if (Math.abs(total - 100) > 0.5) {
+    body.innerHTML = `<div style="text-align:center;padding:40px 16px;color:var(--amber);"><div style="font-size:32px;margin-bottom:8px;">⚠️</div>Oil percentages add up to ${total.toFixed(1)}% — adjust to reach 100% before calculating.</div>`;
+    return;
+  }
+
+  const batchOz  = parseFloat(document.getElementById('batch-oz').value) || 24;
+  const superfat = parseFloat(document.getElementById('superfat').value) || 5;
+  const waterPct = parseFloat(document.getElementById('water-pct').value) || 38;
+  const purity   = (parseFloat(document.getElementById('lye-purity').value) || 99) / 100;
+
+  // Calculate lye needed
+  let lyeNeeded = 0;
+  const oilDetails = oils.map(o => {
+    const oz = (o.pct / 100) * batchOz;
+    const lye = oz * o.sap * (1 - superfat/100);
+    lyeNeeded += lye;
+    return {...o, oz, lyeContrib: lye};
+  });
+
+  // Adjust for lye purity
+  const lyeActual = lyeNeeded / purity;
+  const waterOz   = batchOz * (waterPct / 100);
+  const batchLb   = (batchOz / 16).toFixed(2);
+
+  // Estimated bar yield (oils + lye + water, minus ~20% water evaporation during cure)
+  const totalBatchOz = batchOz + lyeActual + waterOz;
+  const curedOz = totalBatchOz * 0.80;
+  const barsAt35 = Math.floor(curedOz / 3.5);
+
+  const fmt = v => v.toFixed(2);
+  const fmtOz = v => v.toFixed(1) + ' oz';
+  const fmtG  = v => (v * 28.3495).toFixed(0) + ' g';
+
+  body.innerHTML = `
+    <div class="results-grid">
+      <div class="result-block hi">
+        <div class="result-label">NaOH lye needed</div>
+        <div class="result-value">${fmtOz(lyeActual)}</div>
+        <div class="result-sub">${fmtG(lyeActual)} · ${superfat}% superfat · ${(purity*100).toFixed(0)}% purity</div>
+      </div>
+      <div class="result-block hi">
+        <div class="result-label">Water needed</div>
+        <div class="result-value">${fmtOz(waterOz)}</div>
+        <div class="result-sub">${fmtG(waterOz)} · ${waterPct}% of oil weight</div>
+      </div>
+      <div class="result-block">
+        <div class="result-label">Total oil weight</div>
+        <div class="result-value">${fmtOz(batchOz)}</div>
+        <div class="result-sub">${batchLb} lbs</div>
+      </div>
+      <div class="result-block">
+        <div class="result-label">Est. bars yield</div>
+        <div class="result-value">~${barsAt35} bars</div>
+        <div class="result-sub">at 3.5oz each after cure</div>
+      </div>
+    </div>
+
+    <div class="sec-label">Full recipe</div>
+    <table class="oil-table">
+      <thead>
+        <tr>
+          <th>Oil</th>
+          <th>%</th>
+          <th>Weight (oz)</th>
+          <th>Weight (g)</th>
+          <th>Lye contrib.</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${oilDetails.map(o => `
+          <tr>
+            <td class="oil-col">
+              ${o.name}
+              <div class="pct-bar-wrap"><div class="pct-bar" style="width:${o.pct}%"></div></div>
+            </td>
+            <td>${o.pct.toFixed(0)}%</td>
+            <td>${o.oz.toFixed(1)}</td>
+            <td>${(o.oz * 28.3495).toFixed(0)}</td>
+            <td>${o.lyeContrib.toFixed(3)}</td>
+          </tr>`).join('')}
+        <tr>
+          <td class="oil-col">NaOH lye</td>
+          <td>—</td>
+          <td>${lyeActual.toFixed(2)}</td>
+          <td>${(lyeActual * 28.3495).toFixed(0)}</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td class="oil-col">Distilled water</td>
+          <td>—</td>
+          <td>${waterOz.toFixed(2)}</td>
+          <td>${(waterOz * 28.3495).toFixed(0)}</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td class="oil-col">Total batch</td>
+          <td>100%</td>
+          <td>${(batchOz + lyeActual + waterOz).toFixed(2)}</td>
+          <td>${((batchOz + lyeActual + waterOz) * 28.3495).toFixed(0)}</td>
+          <td>${lyeNeeded.toFixed(3)}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:12px 16px;margin-top:16px;font-size:13px;color:var(--amber);">
+      <strong>Safety reminder:</strong> Always add lye <em>to</em> water — never water to lye. Work in a ventilated area, wear gloves and eye protection. Lye solution gets extremely hot. Allow to cool before combining with oils.
+    </div>`;
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+populatePicker();
+loadPreset('tallow100');
+</script>
+</body>
+</html>
   --radius:8px;--radius-lg:12px;
 }
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--cream);color:var(--ink);font-size:15px;line-height:1.5;min-height:100vh;}
