@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Label Generator — Tallow Tools</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --green:#1a3a1a;--green-mid:#2d5a2d;--green-light:#3B6D11;--green-pale:#d4e8d4;--green-faint:#EAF3DE;--green-mid2:#97C459;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-border:#e8c47a;
+  --cream:#faf8f3;--linen:#ece8e0;--ink:#1c1c18;--muted:#6b6b5e;--border:#ddd8ce;--border2:#c8c4ba;
+  --white:#ffffff;--danger:#c0392b;--danger-bg:#fff0ee;
+  --radius:8px;--radius-lg:12px;
+}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--cream);color:var(--ink);font-size:15px;line-height:1.5;min-height:100vh;}
+.app{max-width:1100px;margin:0 auto;padding:28px 24px 60px;}
+
+/* Nav */
+.nav{display:flex;gap:8px;margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid var(--green);}
+.nav-brand{font-family:Georgia,serif;font-size:20px;font-style:italic;color:var(--green);margin-right:auto;align-self:center;}
+.nav-link{text-decoration:none;padding:7px 16px;border-radius:var(--radius);font-size:14px;font-weight:500;color:var(--muted);border:1px solid var(--border);background:var(--white);transition:all .15s;}
+.nav-link:hover{border-color:var(--green-mid2);color:var(--green);}
+.nav-link.active{background:var(--green);color:var(--green-pale);border-color:var(--green);}
+
+.page-title{font-family:Georgia,serif;font-size:26px;font-style:italic;color:var(--green);margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+
+.panel{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:20px;}
+.ph{background:var(--green);padding:13px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.ph-title{font-size:15px;font-weight:600;color:var(--green-pale);}
+.pb{padding:20px;}
+
+.two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:20px;align-items:start;}
+
+.field{margin-bottom:14px;}
+.field label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;font-weight:500;letter-spacing:.02em;}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;font-size:14px;background:var(--white);color:var(--ink);outline:none;font-family:inherit;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--green-light);}
+.field textarea{resize:vertical;min-height:80px;line-height:1.5;}
+
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+.sec-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 10px;}
+.divider{border:none;border-top:1px solid var(--border);margin:18px 0;}
+
+.btn{border-radius:var(--radius);padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;font-family:inherit;white-space:nowrap;border:none;}
+.btn-green{background:var(--green);color:var(--green-pale);}
+.btn-green:hover{background:var(--green-mid);}
+.btn-amber{background:var(--amber);color:var(--amber-bg);}
+.btn-amber:hover{opacity:.9;}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--ink);}
+.btn-outline:hover{background:var(--linen);}
+.btn-sm{padding:6px 13px;font-size:13px;}
+.btn-ghost{background:transparent;border:1px solid rgba(212,232,212,.35);color:rgba(212,232,212,.8);}
+.btn-ghost:hover{background:rgba(255,255,255,.1);}
+
+.tab-row{display:flex;gap:8px;margin-bottom:20px;}
+.tab{background:transparent;border:1px solid var(--border);border-radius:20px;padding:6px 16px;font-size:13px;font-weight:500;cursor:pointer;color:var(--muted);transition:all .15s;font-family:inherit;}
+.tab.active{background:var(--green);border-color:var(--green);color:#fff;}
+
+/* INCI helper */
+.inci-tag{display:inline-flex;align-items:center;gap:5px;background:var(--green-faint);border:1px solid var(--green-mid2);border-radius:4px;padding:4px 10px;font-size:12px;color:var(--green-light);margin:3px;cursor:pointer;}
+.inci-tag:hover{background:var(--green-pale);}
+.inci-tag .remove{color:var(--muted);font-size:14px;line-height:1;}
+.inci-list{min-height:44px;border:1px dashed var(--border2);border-radius:var(--radius);padding:8px;display:flex;flex-wrap:wrap;align-items:flex-start;gap:2px;background:var(--cream);}
+.inci-note{font-size:11px;color:var(--muted);margin-top:6px;font-style:italic;}
+
+/* Label preview area */
+.preview-wrap{background:#f5f5f5;border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;display:flex;flex-direction:column;align-items:center;gap:20px;min-height:400px;}
+.preview-label-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;text-align:center;}
+
+/* Circle label */
+.label-circle{width:200px;height:200px;border-radius:50%;background:#fff;border:2px solid #333;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;position:relative;overflow:hidden;flex-shrink:0;}
+.label-circle .l-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#333;}
+.label-circle .l-product{font-size:14px;font-weight:700;color:#1a3a1a;margin:4px 0;line-height:1.2;}
+.label-circle .l-size{font-size:10px;color:#666;}
+.label-circle .l-tagline{font-size:9px;color:#888;margin-top:4px;font-style:italic;}
+
+/* Rectangle label */
+.label-rect{background:#fff;border:2px solid #333;display:flex;flex-direction:column;padding:12px 16px;position:relative;flex-shrink:0;}
+.label-rect .l-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:8px;}
+.label-rect .l-brand-big{font-size:18px;font-weight:700;letter-spacing:.05em;color:#1a3a1a;}
+.label-rect .l-product-big{font-size:14px;font-weight:600;color:#333;margin-top:2px;}
+.label-rect .l-right{text-align:right;}
+.label-rect .l-size-big{font-size:12px;color:#555;}
+.label-rect .l-section{margin-top:8px;}
+.label-rect .l-section-title{font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-bottom:3px;}
+.label-rect .l-ingredients{font-size:9px;color:#444;line-height:1.5;}
+.label-rect .l-footer{margin-top:8px;padding-top:6px;border-top:1px solid #eee;display:flex;justify-content:space-between;align-items:flex-end;}
+.label-rect .l-address{font-size:8px;color:#888;line-height:1.4;}
+.label-rect .l-warning{font-size:8px;color:#888;text-align:right;max-width:160px;line-height:1.4;}
+
+.action-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;justify-content:center;}
+
+.info-box{background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:12px 16px;font-size:13px;color:var(--amber);margin-bottom:16px;}
+.info-box strong{font-weight:700;}
+
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.15);border-top-color:var(--green);border-radius:50%;animation:spin .6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--green);color:#fff;padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:500;opacity:0;transform:translateY(8px);transition:all .25s;z-index:999;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+
+/* Print styles */
+@media print{
+  .nav,.tab-row,.action-row,.panel:first-of-type,.info-box,#form-panel{display:none!important;}
+  body{background:#fff;}
+  .preview-wrap{background:#fff;border:none;padding:0;}
+  .preview-label-title{display:none;}
+}
+
+@media(max-width:700px){.two-col{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<div class="app">
+
+  <nav class="nav">
+    <div class="nav-brand">Tallow Tools</div>
+    <a href="index.html" class="nav-link">&#9881; Cost Calculator</a>
+    <a href="lye.html" class="nav-link">&#9879; Lye Calculator</a>
+    <a href="label.html" class="nav-link active">&#127991; Label Generator</a>
+  </nav>
+
+  <div class="page-title">Label Generator</div>
+  <div class="page-sub">Build FDA-compliant cosmetic labels — print or download as PDF.</div>
+
+  <div class="info-box">
+    <strong>FDA cosmetic labeling requirements:</strong> Labels must show (1) product name, (2) net weight, (3) ingredients in INCI names by descending weight order, (4) your business name and address, (5) any required warnings. This tool helps you build all of these.
+  </div>
+
+  <div class="two-col">
+
+    <!-- LEFT: Form -->
+    <div id="form-panel">
+
+      <!-- Label type tabs -->
+      <div class="tab-row">
+        <button class="tab active" onclick="setType('circle',this)">&#9711; Circle (lid)</button>
+        <button class="tab" onclick="setType('rect',this)">&#9645; Rectangle (side/wrap)</button>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><div class="ph-title">Brand & Product</div></div>
+        <div class="pb">
+          <div class="field-row">
+            <div class="field"><label>Business / brand name</label><input id="brand" placeholder="e.g. Tallow & Thyme" oninput="updatePreview()" /></div>
+            <div class="field"><label>Product name</label><input id="product" placeholder="e.g. Whipped Tallow Moisturizer" oninput="updatePreview()" /></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Net weight</label><input id="netweight" placeholder="e.g. 2 oz (56g)" oninput="updatePreview()" /></div>
+            <div class="field"><label>Tagline (optional)</label><input id="tagline" placeholder="e.g. grass-fed · small batch" oninput="updatePreview()" /></div>
+          </div>
+          <div class="field"><label>Business address (required by FDA)</label><input id="address" placeholder="e.g. Milwaukee, WI" oninput="updatePreview()" /></div>
+          <div class="field"><label>Warning / directions (optional)</label><textarea id="warning" placeholder="e.g. For external use only. Discontinue if irritation occurs." oninput="updatePreview()"></textarea></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph">
+          <div class="ph-title">Ingredients (INCI names)</div>
+          <button class="btn btn-ghost btn-sm" onclick="loadFromRecipe()">&#8634; Load from recipe</button>
+        </div>
+        <div class="pb">
+
+          <!-- Load from recipe -->
+          <div class="field" id="recipe-load-row" style="display:none;">
+            <label>Select a saved recipe</label>
+            <select id="recipe-pick" onchange="applyRecipe()">
+              <option value="">— pick a recipe —</option>
+            </select>
+          </div>
+
+          <div class="sec-label" style="margin-top:0;">Ingredients in descending order (largest amount first)</div>
+          <div class="inci-list" id="inci-list">
+            <span style="font-size:13px;color:var(--muted);padding:4px;">No ingredients yet — add below or load from a recipe</span>
+          </div>
+          <div class="inci-note">Drag to reorder · Click × to remove · List in descending weight order (FDA requirement)</div>
+
+          <!-- Add ingredient -->
+          <div style="margin-top:12px;padding-top:14px;border-top:1px solid var(--border);">
+            <div class="sec-label" style="margin-top:0;">Add ingredient</div>
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+              <input class="field" style="margin:0;flex:1;" id="inci-search" placeholder="Search or type INCI name (e.g. Lavandula Angustifolia Oil)" oninput="searchINCI()" onkeydown="if(event.key==='Enter')addCustomINCI()" />
+              <button class="btn btn-green btn-sm" onclick="addCustomINCI()">+ Add</button>
+            </div>
+            <div id="inci-suggestions" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+
+            <div class="sec-label">Common INCI names — click to add</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              ${buildQuickINCI()}
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Preview -->
+    <div>
+      <div class="panel">
+        <div class="ph">
+          <div class="ph-title">Label Preview</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="window.print()">&#128438; Print</button>
+            <button class="btn btn-amber btn-sm" onclick="downloadPDF()">&#11015; PDF</button>
+          </div>
+        </div>
+        <div class="pb">
+          <div class="preview-wrap" id="preview-wrap">
+            <div id="label-preview"></div>
+          </div>
+          <div class="action-row">
+            <button class="btn btn-outline btn-sm" onclick="window.print()">&#128438; Print labels</button>
+            <button class="btn btn-green btn-sm" onclick="downloadPDF()">&#11015; Download PDF</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Size guide -->
+      <div class="panel">
+        <div class="ph"><div class="ph-title">Label size guide</div></div>
+        <div class="pb" style="font-size:13px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
+              <div style="font-weight:700;color:var(--green);margin-bottom:4px;">&#9711; Circle labels</div>
+              <div style="color:var(--muted);font-size:12px;line-height:1.6;">
+                2oz jar lid: <strong>2" circle</strong><br>
+                4oz jar lid: <strong>2.5" circle</strong><br>
+                Order from: Avery 22807, Online Labels OL875
+              </div>
+            </div>
+            <div style="background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
+              <div style="font-weight:700;color:var(--green);margin-bottom:4px;">&#9645; Rectangle labels</div>
+              <div style="color:var(--muted);font-size:12px;line-height:1.6;">
+                Soap wrap: <strong>3" × 2"</strong><br>
+                Jar side: <strong>4" × 1.5"</strong><br>
+                Order from: Avery 5163, Online Labels OL125
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:var(--muted);">
+            Print on standard label sheets for best results. Use "Actual size" (not "Fit to page") in your print dialog.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Config ─────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://npsqnfsluoyaibbbpwhv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wc3FuZnNsdW95YWliYmJwd2h2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzE0NjAsImV4cCI6MjA4ODUwNzQ2MH0.yzc4prmPHcbzL3dBvrd8BndYctZq1bkSyqBb4BvteWw';
+
+// ── INCI database ──────────────────────────────────────────────────────────
+const INCI_DB = {
+  // Tallow / fats
+  'Beef Tallow': 'Bos Taurus (Beef) Tallow',
+  'Tallow': 'Bos Taurus (Beef) Tallow',
+  'Lard': 'Sus Scrofa (Lard)',
+  'Cocoa Butter': 'Theobroma Cacao (Cocoa) Seed Butter',
+  'Shea Butter': 'Butyrospermum Parkii (Shea) Butter',
+  'Beeswax': 'Cera Alba',
+  // Oils
+  'Olive Oil': 'Olea Europaea (Olive) Fruit Oil',
+  'Coconut Oil': 'Cocos Nucifera (Coconut) Oil',
+  'Jojoba Oil': 'Simmondsia Chinensis (Jojoba) Seed Oil',
+  'Avocado Oil': 'Persea Gratissima (Avocado) Oil',
+  'Sunflower Oil': 'Helianthus Annuus (Sunflower) Seed Oil',
+  'Castor Oil': 'Ricinus Communis (Castor) Seed Oil',
+  'Sweet Almond Oil': 'Prunus Amygdalus Dulcis (Sweet Almond) Oil',
+  'Rosehip Oil': 'Rosa Canina Fruit Oil',
+  'Argan Oil': 'Argania Spinosa Kernel Oil',
+  'Hemp Seed Oil': 'Cannabis Sativa Seed Oil',
+  // Vitamins & actives
+  'Vitamin E Oil': 'Tocopherol',
+  'Vitamin E': 'Tocopherol',
+  'Vitamin C': 'Ascorbic Acid',
+  // Essential oils
+  'Lavender EO': 'Lavandula Angustifolia (Lavender) Oil',
+  'Lavender': 'Lavandula Angustifolia (Lavender) Oil',
+  'Frankincense EO': 'Boswellia Carterii (Frankincense) Oil',
+  'Frankincense': 'Boswellia Carterii (Frankincense) Oil',
+  'Tea Tree': 'Melaleuca Alternifolia (Tea Tree) Leaf Oil',
+  'Peppermint': 'Mentha Piperita (Peppermint) Oil',
+  'Eucalyptus': 'Eucalyptus Globulus Leaf Oil',
+  'Rosemary': 'Rosmarinus Officinalis (Rosemary) Leaf Oil',
+  'Lemon': 'Citrus Limon (Lemon) Peel Oil',
+  'Orange': 'Citrus Aurantium Dulcis (Orange) Peel Oil',
+  // Soap-specific
+  'Sodium Hydroxide': 'Sodium Hydroxide',
+  'Lye': 'Sodium Hydroxide',
+  'Distilled Water': 'Aqua',
+  'Water': 'Aqua',
+  // Misc
+  'Arrowroot Powder': 'Maranta Arundinacea Root Powder',
+  'Kaolin Clay': 'Kaolin',
+  'Activated Charcoal': 'Charcoal Powder',
+};
+
+const QUICK_INCI = [
+  'Bos Taurus (Beef) Tallow',
+  'Tocopherol',
+  'Cera Alba',
+  'Aqua',
+  'Olea Europaea (Olive) Fruit Oil',
+  'Cocos Nucifera (Coconut) Oil',
+  'Lavandula Angustifolia (Lavender) Oil',
+  'Boswellia Carterii (Frankincense) Oil',
+  'Sodium Hydroxide',
+  'Butyrospermum Parkii (Shea) Butter',
+  'Ricinus Communis (Castor) Seed Oil',
+  'Simmondsia Chinensis (Jojoba) Seed Oil',
+];
+
+function buildQuickINCI() {
+  return QUICK_INCI.map(n => `<span class="inci-tag" onclick="addINCI('${n}')">${n}</span>`).join('');
+}
+
+// ── State ──────────────────────────────────────────────────────────────────
+let labelType = 'circle';
+let inciList = [];
+let sb = null;
+let recipes = [];
+
+// ── Init ───────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const {data} = await sb.from('recipes').select('id, name, items').order('name');
+    if (data) {
+      recipes = data;
+      const sel = document.getElementById('recipe-pick');
+      data.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = r.name;
+        sel.appendChild(opt);
+      });
+    }
+  } catch(e) { console.warn('Supabase not connected', e); }
+
+  // Defaults
+  document.getElementById('brand').value = 'Tallow & Thyme';
+  document.getElementById('address').value = 'Milwaukee, WI';
+  document.getElementById('warning').value = 'For external use only. Keep out of reach of children. Discontinue use if irritation occurs.';
+  updatePreview();
+});
+
+// ── Label type ─────────────────────────────────────────────────────────────
+function setType(type, btn) {
+  labelType = type;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  updatePreview();
+}
+
+// ── INCI management ────────────────────────────────────────────────────────
+function addINCI(name) {
+  if (inciList.includes(name)) return;
+  inciList.push(name);
+  renderINCI(); updatePreview();
+}
+
+function addCustomINCI() {
+  const inp = document.getElementById('inci-search');
+  const val = inp.value.trim();
+  if (!val) return;
+  // Check if it matches a common name
+  const inci = INCI_DB[val] || val;
+  addINCI(inci);
+  inp.value = '';
+  document.getElementById('inci-suggestions').innerHTML = '';
+}
+
+function removeINCI(i) {
+  inciList.splice(i, 1);
+  renderINCI(); updatePreview();
+}
+
+function moveINCI(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= inciList.length) return;
+  [inciList[i], inciList[j]] = [inciList[j], inciList[i]];
+  renderINCI(); updatePreview();
+}
+
+function renderINCI() {
+  const el = document.getElementById('inci-list');
+  if (!inciList.length) {
+    el.innerHTML = '<span style="font-size:13px;color:var(--muted);padding:4px;">No ingredients yet</span>';
+    return;
+  }
+  el.innerHTML = inciList.map((name, i) => `
+    <div style="display:flex;align-items:center;gap:4px;background:var(--green-faint);border:1px solid var(--green-mid2);border-radius:4px;padding:4px 8px;margin:2px;">
+      <span style="font-size:11px;color:var(--muted);cursor:pointer;" onclick="moveINCI(${i},-1)" title="Move up">&#9650;</span>
+      <span style="font-size:11px;color:var(--muted);cursor:pointer;" onclick="moveINCI(${i},1)" title="Move down">&#9660;</span>
+      <span style="font-size:12px;color:var(--green-light);font-weight:500;">${i+1}.</span>
+      <span style="font-size:12px;color:var(--ink);">${name}</span>
+      <span style="font-size:16px;color:var(--muted);cursor:pointer;margin-left:2px;" onclick="removeINCI(${i})">×</span>
+    </div>`).join('');
+}
+
+function searchINCI() {
+  const q = document.getElementById('inci-search').value.toLowerCase();
+  const sug = document.getElementById('inci-suggestions');
+  if (q.length < 2) { sug.innerHTML = ''; return; }
+  const matches = Object.entries(INCI_DB)
+    .filter(([k,v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q))
+    .slice(0, 6);
+  sug.innerHTML = matches.map(([k,v]) =>
+    `<span class="inci-tag" onclick="addINCI('${v}');document.getElementById('inci-search').value='';document.getElementById('inci-suggestions').innerHTML='';">${k} → ${v}</span>`
+  ).join('');
+}
+
+// ── Load from recipe ───────────────────────────────────────────────────────
+function loadFromRecipe() {
+  const row = document.getElementById('recipe-load-row');
+  row.style.display = row.style.display === 'none' ? 'block' : 'none';
+}
+
+async function applyRecipe() {
+  const id = parseInt(document.getElementById('recipe-pick').value);
+  if (!id) return;
+  const rec = recipes.find(r => r.id === id);
+  if (!rec) return;
+
+  // Load ingredient names from Supabase
+  try {
+    const ingIds = rec.items.map(i => i.id);
+    const {data: ings} = await sb.from('ingredients').select('id, name').in('id', ingIds);
+    if (!ings) return;
+
+    // Map ingredient names to INCI
+    inciList = [];
+    // Sort by qty descending
+    const sorted = [...rec.items].sort((a,b) => b.qty - a.qty);
+    sorted.forEach(ri => {
+      const ing = ings.find(i => i.id === ri.id);
+      if (!ing) return;
+      const inci = INCI_DB[ing.name] || ing.name;
+      if (!inciList.includes(inci)) inciList.push(inci);
+    });
+
+    // Set product name from recipe
+    document.getElementById('product').value = rec.name;
+    renderINCI(); updatePreview();
+    toast('Recipe loaded — review ingredient order');
+    document.getElementById('recipe-load-row').style.display = 'none';
+  } catch(e) { toast('Error loading recipe', true); }
+}
+
+// ── Preview ────────────────────────────────────────────────────────────────
+function updatePreview() {
+  const brand   = document.getElementById('brand').value || 'Your Brand';
+  const product = document.getElementById('product').value || 'Product Name';
+  const weight  = document.getElementById('netweight').value || '2 oz (56g)';
+  const tagline = document.getElementById('tagline').value || '';
+  const address = document.getElementById('address').value || 'Your City, State';
+  const warning = document.getElementById('warning').value || '';
+  const inci    = inciList.length ? inciList.join(', ') : 'Ingredients will appear here';
+
+  const el = document.getElementById('label-preview');
+
+  if (labelType === 'circle') {
+    el.innerHTML = `
+      <div class="preview-label-title">Circle label preview (2")</div>
+      <div class="label-circle" id="the-label">
+        <div class="l-brand">${esc(brand)}</div>
+        <div class="l-product">${esc(product)}</div>
+        <div class="l-size">${esc(weight)}</div>
+        ${tagline ? `<div class="l-tagline">${esc(tagline)}</div>` : ''}
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center;">Full ingredient list prints on back/side label</div>`;
+  } else {
+    el.innerHTML = `
+      <div class="preview-label-title">Rectangle label preview (4" × 2")</div>
+      <div class="label-rect" id="the-label" style="width:384px;min-height:192px;">
+        <div class="l-header">
+          <div>
+            <div class="l-brand-big">${esc(brand)}</div>
+            <div class="l-product-big">${esc(product)}</div>
+            ${tagline ? `<div style="font-size:10px;color:#888;margin-top:2px;font-style:italic;">${esc(tagline)}</div>` : ''}
+          </div>
+          <div class="l-right">
+            <div class="l-size-big">Net wt. ${esc(weight)}</div>
+          </div>
+        </div>
+        <div class="l-section">
+          <div class="l-section-title">Ingredients</div>
+          <div class="l-ingredients">${esc(inci)}</div>
+        </div>
+        <div class="l-footer">
+          <div class="l-address">
+            <strong>${esc(brand)}</strong><br>
+            ${esc(address)}
+          </div>
+          ${warning ? `<div class="l-warning">${esc(warning)}</div>` : ''}
+        </div>
+      </div>`;
+  }
+}
+
+// ── PDF download ───────────────────────────────────────────────────────────
+function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const brand   = document.getElementById('brand').value || 'Your Brand';
+  const product = document.getElementById('product').value || 'Product Name';
+  const weight  = document.getElementById('netweight').value || '2 oz (56g)';
+  const tagline = document.getElementById('tagline').value || '';
+  const address = document.getElementById('address').value || '';
+  const warning = document.getElementById('warning').value || '';
+  const inci    = inciList.length ? inciList.join(', ') : '';
+
+  if (labelType === 'circle') {
+    // 2 inch circle on letter paper, multiple labels per sheet (4x5 grid)
+    const doc = new jsPDF({orientation:'portrait', unit:'in', format:'letter'});
+    const r = 0.9; // radius inches
+    const cols = 4, rows = 5;
+    const marginX = (8.5 - cols * r * 2) / (cols + 1);
+    const marginY = (11 - rows * r * 2) / (rows + 1);
+
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const cx = marginX + r + col * (r * 2 + marginX);
+        const cy = marginY + r + row * (r * 2 + marginY);
+
+        doc.setDrawColor(80, 80, 80);
+        doc.setLineWidth(0.01);
+        doc.circle(cx, cy, r);
+
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(7);
+        doc.setTextColor(40, 80, 40);
+        doc.text(brand.toUpperCase(), cx, cy - 0.22, {align:'center'});
+
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(9);
+        doc.setTextColor(20, 40, 20);
+        const prodLines = doc.splitTextToSize(product, r * 1.6);
+        doc.text(prodLines, cx, cy, {align:'center'});
+
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(7);
+        doc.setTextColor(100,100,100);
+        doc.text(weight, cx, cy + 0.22, {align:'center'});
+
+        if (tagline) {
+          doc.setFontSize(6);
+          doc.setTextColor(140,140,140);
+          doc.text(tagline, cx, cy + 0.34, {align:'center'});
+        }
+      }
+    }
+
+    doc.save(`${brand}-circle-labels.pdf`);
+
+  } else {
+    // Rectangle 4x2 inch labels, 2 per row, letter sheet
+    const doc = new jsPDF({orientation:'portrait', unit:'in', format:'letter'});
+    const lw = 4, lh = 2;
+    const cols = 2, rows = 5;
+    const marginX = (8.5 - cols * lw) / (cols + 1);
+    const marginY = (11 - rows * lh) / (rows + 1);
+
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const x = marginX + col * (lw + marginX);
+        const y = marginY + row * (lh + marginY);
+
+        doc.setDrawColor(80,80,80);
+        doc.setLineWidth(0.01);
+        doc.rect(x, y, lw, lh);
+
+        // Brand
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(13);
+        doc.setTextColor(26, 58, 26);
+        doc.text(brand, x + 0.12, y + 0.28);
+
+        // Product
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(9);
+        doc.setTextColor(50,50,50);
+        doc.text(product, x + 0.12, y + 0.46);
+
+        // Tagline
+        if (tagline) {
+          doc.setFont('helvetica','italic');
+          doc.setFontSize(7);
+          doc.setTextColor(130,130,130);
+          doc.text(tagline, x + 0.12, y + 0.60);
+        }
+
+        // Net weight
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(8);
+        doc.setTextColor(80,80,80);
+        doc.text(`Net wt. ${weight}`, x + lw - 0.12, y + 0.28, {align:'right'});
+
+        // Divider
+        doc.setDrawColor(200,200,200);
+        doc.line(x + 0.12, y + 0.70, x + lw - 0.12, y + 0.70);
+
+        // Ingredients
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(6);
+        doc.setTextColor(150,150,150);
+        doc.text('INGREDIENTS', x + 0.12, y + 0.84);
+
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(6.5);
+        doc.setTextColor(60,60,60);
+        const inciLines = doc.splitTextToSize(inci || 'Add ingredients in the label generator', lw - 0.24);
+        doc.text(inciLines.slice(0, 4), x + 0.12, y + 0.96);
+
+        // Footer divider
+        doc.setDrawColor(220,220,220);
+        doc.line(x + 0.12, y + lh - 0.36, x + lw - 0.12, y + lh - 0.36);
+
+        // Address
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(6);
+        doc.setTextColor(120,120,120);
+        doc.text(brand, x + 0.12, y + lh - 0.24);
+        doc.text(address, x + 0.12, y + lh - 0.14);
+
+        // Warning
+        if (warning) {
+          const warnLines = doc.splitTextToSize(warning, lw * 0.45);
+          doc.text(warnLines.slice(0,2), x + lw - 0.12, y + lh - 0.24, {align:'right'});
+        }
+      }
+    }
+
+    doc.save(`${brand}-rectangle-labels.pdf`);
+  }
+
+  toast('PDF downloaded!');
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+let toastTimer;
+function toast(msg, isErr=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = isErr ? '#c0392b' : 'var(--green)';
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
