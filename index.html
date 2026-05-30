@@ -17,12 +17,7 @@
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--cream);color:var(--ink);font-size:15px;line-height:1.5;min-height:100vh;}
 
 .app{max-width:1100px;margin:0 auto;padding:28px 24px 60px;}
-.nav{display:flex;gap:8px;margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid var(--green);}
-.nav-brand{font-family:Georgia,serif;font-size:20px;font-style:italic;color:var(--green);margin-right:auto;align-self:center;}
-.nav-link{text-decoration:none;padding:7px 16px;border-radius:var(--radius);font-size:14px;font-weight:500;color:var(--muted);border:1px solid var(--border);background:var(--white);transition:all .15s;cursor:pointer;}
-.nav-link:hover{border-color:var(--green-mid2);color:var(--green);}
-.nav-link.active{background:var(--green);color:var(--green-pale);border-color:var(--green);}
-.app-header{margin-bottom:24px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.app-header{padding-bottom:16px;border-bottom:2px solid var(--green);margin-bottom:28px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px;}
 .app-title{font-family:Georgia,serif;font-size:30px;font-style:italic;font-weight:normal;color:var(--green);}
 .app-sub{font-size:13px;color:var(--muted);margin-top:3px;}
 
@@ -145,16 +140,6 @@ select.inp{cursor:pointer;}
 <div class="toast" id="toast"></div>
 
 <div class="app">
-  <nav class="nav">
-    <div class="nav-brand">Tallow Tools</div>
-    <a href="index.html" class="nav-link active">&#9881; Cost</a>
-    <a href="lye.html" class="nav-link">&#9879; Lye</a>
-    <a href="label.html" class="nav-link">&#127991; Labels</a>
-    <a href="planner.html" class="nav-link">&#128197; Planner</a>
-    <a href="sales.html" class="nav-link">&#128200; Sales</a>
-    <a href="cure.html" class="nav-link">&#9201; Cure</a>
-    <a href="inventory.html" class="nav-link">&#128230; Inventory</a>
-  </nav>
   <div class="app-header">
     <div>
       <div class="app-title">Tallow Recipe Cost Calculator</div>
@@ -283,8 +268,8 @@ select.inp{cursor:pointer;}
 <script>
 // ── CONFIG ─────────────────────────────────────────────────────────────────
 // Option A: hardcode after setup (recommended for personal use)
-const SUPABASE_URL = 'https://npsqnfsluoyaibbbpwhv.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wc3FuZnNsdW95YWliYmJwd2h2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzE0NjAsImV4cCI6MjA4ODUwNzQ2MH0.yzc4prmPHcbzL3dBvrd8BndYctZq1bkSyqBb4BvteWw';
+const SUPABASE_URL = '';   // e.g. 'https://abcdefgh.supabase.co'
+const SUPABASE_KEY = '';   // your anon public key
 
 // ── State ──────────────────────────────────────────────────────────────────
 let sb = null;
