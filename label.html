@@ -113,6 +113,51 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 
 @media(max-width:700px){.two-col{grid-template-columns:1fr;}}
 </style>
+
+<style id="mobile-enhancements">
+/* ===== Mobile enhancements ===== */
+.bottom-nav { display: none; }
+@media (max-width: 768px) {
+  /* Replace wrapping top nav with a fixed bottom tab bar */
+  .nav { display: none !important; }
+  body { padding-bottom: 74px !important; }
+  .app { padding-left: 16px !important; padding-right: 16px !important; }
+  /* Stop iOS auto-zooming when a field is focused */
+  input, select, textarea { font-size: 16px !important; }
+  /* Comfortable tap targets */
+  .btn, .nav-link, .tab, .filter-btn, .del-btn, .product-toggle { min-height: 40px; }
+  .del-btn { min-width: 40px; }
+
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: #1a3a1a;
+    border-top: 1px solid rgba(255,255,255,0.12);
+    z-index: 1000;
+    padding: 6px 2px calc(6px + env(safe-area-inset-bottom, 0px));
+    justify-content: space-around;
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.15);
+  }
+  .bottom-nav a {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    text-decoration: none;
+    color: rgba(212,232,212,0.55);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    padding: 3px 1px;
+  }
+  .bottom-nav a.active { color: #ffffff; }
+  .bottom-nav a .bn-ico { font-size: 19px; line-height: 1; }
+}
+</style>
+
 </head>
 <body>
 <div class="toast" id="toast"></div>
@@ -662,5 +707,14 @@ function toast(msg, isErr=false) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
 }
 </script>
+<nav class="bottom-nav">
+  <a href="index.html" class=""><span class="bn-ico">&#9881;</span>Cost</a>
+  <a href="lye.html" class=""><span class="bn-ico">&#9879;</span>Lye</a>
+  <a href="label.html" class="active"><span class="bn-ico">&#127991;</span>Labels</a>
+  <a href="planner.html" class=""><span class="bn-ico">&#128197;</span>Plan</a>
+  <a href="sales.html" class=""><span class="bn-ico">&#128200;</span>Sales</a>
+  <a href="cure.html" class=""><span class="bn-ico">&#9201;</span>Cure</a>
+  <a href="inventory.html" class=""><span class="bn-ico">&#128230;</span>Stock</a>
+</nav>
 </body>
 </html>
