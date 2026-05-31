@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recipes — Tallow Tools</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --green:#1a3a1a;--green-mid:#2d5a2d;--green-light:#3B6D11;--green-pale:#d4e8d4;--green-faint:#EAF3DE;--green-mid2:#97C459;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-border:#e8c47a;
+  --cream:#faf8f3;--linen:#ece8e0;--ink:#1c1c18;--muted:#6b6b5e;--border:#ddd8ce;--border2:#c8c4ba;
+  --white:#fff;--danger:#c0392b;--danger-bg:#fff0ee;
+  --radius:8px;--radius-lg:12px;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:var(--ink);font-size:15px;line-height:1.5;min-height:100vh;}
+.app{max-width:1100px;margin:0 auto;padding:28px 24px 60px;}
+.nav{display:flex;gap:8px;margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid var(--green);flex-wrap:wrap;}
+.nav-brand{font-family:Georgia,serif;font-size:20px;font-style:italic;color:var(--green);margin-right:auto;align-self:center;}
+.nav-link{text-decoration:none;padding:7px 14px;border-radius:var(--radius);font-size:13px;font-weight:500;color:var(--muted);border:1px solid var(--border);background:var(--white);transition:all .15s;}
+.nav-link:hover{border-color:var(--green-mid2);color:var(--green);}
+.nav-link.active{background:var(--green);color:var(--green-pale);border-color:var(--green);}
+.page-title{font-family:Georgia,serif;font-size:26px;font-style:italic;color:var(--green);margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.panel{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:20px;}
+.ph{background:var(--green);padding:13px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.ph-title{font-size:15px;font-weight:600;color:var(--green-pale);}
+.badge{font-size:11px;padding:3px 10px;border-radius:12px;background:var(--green-faint);color:var(--green-light);font-weight:600;}
+.pb{padding:20px;}
+.two-col{display:grid;grid-template-columns:minmax(0,0.9fr) minmax(0,1.1fr);gap:20px;align-items:start;}
+
+.field{margin-bottom:12px;}
+.field label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px;font-weight:500;}
+.inp{border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;font-size:14px;background:var(--white);color:var(--ink);width:100%;outline:none;font-family:inherit;}
+.inp:focus{border-color:var(--green-light);}
+select.inp{cursor:pointer;}
+
+/* Builder ingredient rows */
+.ri-row{display:grid;grid-template-columns:minmax(0,1fr) 80px 55px 32px;gap:8px;align-items:center;padding:10px 12px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px;}
+.ri-row input{border:2px solid var(--green-mid2);border-radius:var(--radius);padding:6px 8px;font-size:14px;font-weight:600;text-align:center;background:var(--white);color:var(--ink);width:100%;outline:none;}
+.ri-unit{font-size:12px;color:var(--muted);}
+.del-btn{width:30px;height:30px;border-radius:50%;border:none;background:transparent;color:#ccc;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;}
+.del-btn:hover{background:var(--danger-bg);color:var(--danger);}
+
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;}
+.metric{background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);padding:10px;text-align:center;}
+.metric.hi{background:var(--green);border-color:var(--green);}
+.metric-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+.metric.hi .metric-lbl{color:rgba(212,232,212,.6);}
+.metric-val{font-family:Georgia,serif;font-size:20px;color:var(--ink);line-height:1;}
+.metric.hi .metric-val{color:#fff;}
+.metric-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+.metric.hi .metric-sub{color:rgba(212,232,212,.5);}
+
+.sec-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+
+/* Library */
+.rfilter{background:transparent;border:1px solid var(--border);border-radius:20px;padding:5px 13px;font-size:12px;font-weight:500;cursor:pointer;color:var(--muted);font-family:inherit;transition:all .15s;}
+.rfilter.active{background:var(--green);border-color:var(--green);color:#fff;}
+.lib-scroll{max-height:560px;overflow-y:auto;padding-right:2px;}
+
+.rec-card{background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden;}
+.rec-card.open{border-color:var(--green-mid2);}
+.rec-head{padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;}
+.rec-head:hover{background:var(--green-faint);}
+.rec-cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.rec-cat-dot.soap{background:#3B6D11;}
+.rec-cat-dot.moisturizer{background:#BA7517;}
+.rec-cat-dot.lip{background:#c0392b;}
+.rec-cat-dot.other{background:var(--muted);}
+.rec-name{font-size:14px;font-weight:600;color:var(--ink);flex:1;min-width:0;}
+.rec-profit{font-size:13px;font-weight:700;color:var(--green-light);white-space:nowrap;}
+.rec-chev{color:var(--muted);font-size:12px;transition:transform .2s;}
+.rec-card.open .rec-chev{transform:rotate(180deg);}
+.rec-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border);}
+.rec-card.open .rec-body{display:block;}
+
+.detail-line{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--linen);}
+.detail-line:last-child{border-bottom:none;}
+.detail-line .dl-name{color:var(--ink);}
+.detail-line .dl-amt{color:var(--muted);}
+.detail-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+.ds-box{background:var(--white);border:1px solid var(--border);border-radius:6px;padding:8px;text-align:center;}
+.ds-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.ds-val{font-size:16px;font-weight:700;color:var(--green);font-family:Georgia,serif;margin-top:2px;}
+.rec-actions{display:flex;gap:8px;margin-top:12px;}
+
+.btn{border-radius:var(--radius);padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s;font-family:inherit;white-space:nowrap;border:none;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-green{background:var(--green);color:var(--green-pale);}
+.btn-green:hover:not(:disabled){background:var(--green-mid);}
+.btn-amber{background:var(--amber);color:var(--amber-bg);}
+.btn-amber:hover:not(:disabled){opacity:.9;}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--ink);}
+.btn-outline:hover{background:var(--linen);}
+.btn-ghost{background:transparent;border:1px solid rgba(212,232,212,.35);color:rgba(212,232,212,.8);}
+.btn-ghost:hover{background:rgba(255,255,255,.1);}
+.btn-danger-sm{background:transparent;border:1px solid #e8b0aa;color:var(--danger);font-size:12px;padding:5px 11px;border-radius:var(--radius);cursor:pointer;font-family:inherit;}
+
+.empty-state{text-align:center;padding:30px;color:var(--muted);font-size:14px;}
+.empty-icon{font-size:30px;margin-bottom:8px;}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.15);border-top-color:var(--green);border-radius:50%;animation:spin .6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--green);color:#fff;padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:500;opacity:0;transform:translateY(8px);transition:all .25s;z-index:1100;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+
+@media(max-width:768px){.two-col{grid-template-columns:1fr;}}
+
+<!-- mobile bottom nav baked in below -->
+.bottom-nav{display:none;}
+@media (max-width:768px){
+  .nav{display:none !important;}
+  body{padding-bottom:74px !important;}
+  .app{padding-left:16px !important;padding-right:16px !important;}
+  input,select,textarea{font-size:16px !important;}
+  .btn,.nav-link,.rfilter,.del-btn{min-height:40px;}
+  .bottom-nav{display:flex;position:fixed;left:0;right:0;bottom:0;background:#1a3a1a;border-top:1px solid rgba(255,255,255,0.12);z-index:1000;padding:6px 2px calc(6px + env(safe-area-inset-bottom,0px));justify-content:space-around;box-shadow:0 -2px 12px rgba(0,0,0,0.15);}
+  .bottom-nav a{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;color:rgba(212,232,212,0.55);font-size:9px;font-weight:500;padding:3px 1px;}
+  .bottom-nav a.active{color:#fff;}
+  .bottom-nav a .bn-ico{font-size:18px;line-height:1;}
+}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<div class="app">
+  <nav class="nav">
+    <div class="nav-brand">Tallow Tools</div>
+    <a href="index.html" class="nav-link">&#9881; Cost</a>
+    <a href="recipes.html" class="nav-link active">&#129383; Recipes</a>
+    <a href="lye.html" class="nav-link">&#9879; Lye</a>
+    <a href="label.html" class="nav-link">&#127991; Labels</a>
+    <a href="planner.html" class="nav-link">&#128197; Planner</a>
+    <a href="sales.html" class="nav-link">&#128200; Sales</a>
+    <a href="cure.html" class="nav-link">&#9201; Cure</a>
+    <a href="inventory.html" class="nav-link">&#128230; Inventory</a>
+  </nav>
+
+  <div class="page-title">Recipes</div>
+  <div class="page-sub">Build new recipes and browse your full library. Everything here syncs to the Planner, Cure, Inventory, and Sales tabs.</div>
+
+  <div id="loading-state" style="text-align:center;padding:40px;color:var(--muted);">
+    <div class="spinner" style="width:24px;height:24px;margin:0 auto 12px;"></div>
+    Loading recipes…
+  </div>
+
+  <div class="two-col" id="main" style="display:none;">
+
+    <!-- Builder -->
+    <div class="panel" style="margin-bottom:0;">
+      <div class="ph">
+        <div class="ph-title">Recipe Builder</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm btn-ghost" onclick="clearRecipe()">Clear</button>
+          <button class="btn btn-sm btn-amber" onclick="saveRecipe()" id="btn-save">&#128190; Save</button>
+        </div>
+      </div>
+      <div class="pb">
+        <div class="field">
+          <label>Recipe name</label>
+          <input class="inp" id="recipe-name" placeholder="e.g. Oatmeal & Honey Soap" oninput="calc()" />
+        </div>
+        <div class="sec-label" style="margin-top:0;">Ingredients</div>
+        <div id="ri-list" style="max-height:240px;overflow-y:auto;">
+          <div class="empty-state" style="padding:16px 0 8px;"><div class="empty-icon">🧴</div>Add ingredients below</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;padding-top:12px;border-top:1px solid var(--border);">
+          <select class="inp" id="ri-pick" style="flex:1;"><option value="">— add ingredient —</option></select>
+          <button class="btn btn-green btn-sm" onclick="addToRecipe()">+ Add</button>
+        </div>
+        <hr class="divider">
+        <div class="sec-label" style="margin-top:0;">Batch &amp; pricing</div>
+        <div class="settings-grid">
+          <div class="field"><label>Units per batch</label><input class="inp" type="number" id="batch-units" value="8" min="1" oninput="calc()"></div>
+          <div class="field"><label>Labor (minutes)</label><input class="inp" type="number" id="labor-mins" value="90" min="0" oninput="calc()"></div>
+          <div class="field"><label>Hourly rate ($)</label><input class="inp" type="number" id="hourly" value="20" min="0" oninput="calc()"></div>
+          <div class="field"><label>Markup (×)</label><input class="inp" type="number" id="markup" value="2.5" step="0.1" min="1" oninput="calc()"></div>
+        </div>
+        <div class="field"><label>Platform fee (%)</label><input class="inp" type="number" id="fee" value="8" step="0.5" min="0" oninput="calc()"></div>
+        <div class="metrics" id="builder-metrics" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- Library -->
+    <div class="panel" style="margin-bottom:0;">
+      <div class="ph">
+        <div class="ph-title">Recipe Library</div>
+        <span class="badge" id="lib-count">0</span>
+      </div>
+      <div class="pb">
+        <input class="inp" id="lib-search" placeholder="&#128269;  Search recipes…" oninput="renderLib()" style="margin-bottom:10px;" />
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <button class="rfilter active" onclick="setFilter('all',this)">All</button>
+          <button class="rfilter" onclick="setFilter('soap',this)">Soap</button>
+          <button class="rfilter" onclick="setFilter('moisturizer',this)">Moisturizer</button>
+          <button class="rfilter" onclick="setFilter('lip balm',this)">Lip Balm</button>
+        </div>
+        <div class="lib-scroll" id="lib-list">
+          <div class="empty-state"><div class="empty-icon">📋</div>No recipes yet</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html"><span class="bn-ico">&#9881;</span>Cost</a>
+  <a href="recipes.html" class="active"><span class="bn-ico">&#129383;</span>Recipes</a>
+  <a href="lye.html"><span class="bn-ico">&#9879;</span>Lye</a>
+  <a href="label.html"><span class="bn-ico">&#127991;</span>Labels</a>
+  <a href="planner.html"><span class="bn-ico">&#128197;</span>Plan</a>
+  <a href="sales.html"><span class="bn-ico">&#128200;</span>Sales</a>
+  <a href="cure.html"><span class="bn-ico">&#9201;</span>Cure</a>
+  <a href="inventory.html"><span class="bn-ico">&#128230;</span>Stock</a>
+</nav>
+
+<script>
+const SUPABASE_URL = 'https://npsqnfsluoyaibbbpwhv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wc3FuZnNsdW95YWliYmJwd2h2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MzE0NjAsImV4cCI6MjA4ODUwNzQ2MH0.yzc4prmPHcbzL3dBvrd8BndYctZq1bkSyqBb4BvteWw';
+let sb, ings=[], recipes=[], recipe={name:'',items:[]}, filter='all', openId=null;
+
+window.addEventListener('DOMContentLoaded', async () => {
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  try {
+    const [{data:ig}, {data:rc}] = await Promise.all([
+      sb.from('ingredients').select('*').order('name'),
+      sb.from('recipes').select('*').order('name')
+    ]);
+    ings = ig || []; recipes = rc || [];
+    document.getElementById('loading-state').style.display='none';
+    document.getElementById('main').style.display='grid';
+    updPick(); renderRI(); calc(); renderLib();
+  } catch(e) {
+    document.getElementById('loading-state').innerHTML = '<div style="color:var(--danger)">Could not connect to database.</div>';
+  }
+});
+
+// ── Category helper ──
+function catOf(name){
+  const n=name.toLowerCase();
+  if(n.includes('lip balm')) return 'lip';
+  if(n.includes('moisturizer')) return 'moisturizer';
+  if(n.includes('soap')) return 'soap';
+  return 'other';
+}
+
+// ── Builder ──
+function updPick(){
+  const s=document.getElementById('ri-pick'),cur=s.value;
+  s.innerHTML='<option value="">— add ingredient —</option>'+ings.map(g=>`<option value="${g.id}">${esc(g.name)} · $${Number(g.cost).toFixed(3)}/${g.unit}</option>`).join('');
+  if(cur)s.value=cur;
+}
+function renderRI(){
+  const el=document.getElementById('ri-list');
+  if(!recipe.items.length){el.innerHTML='<div class="empty-state" style="padding:16px 0 8px;"><div class="empty-icon">🧴</div>Add ingredients below</div>';return;}
+  el.innerHTML=recipe.items.map((ri,i)=>{
+    const g=ings.find(x=>x.id===ri.id);if(!g)return'';
+    return`<div class="ri-row">
+      <div><div style="font-size:14px;font-weight:600;">${esc(g.name)}</div><div style="font-size:12px;color:var(--muted);">$${(ri.qty*Number(g.cost)).toFixed(3)} total</div></div>
+      <input type="number" value="${ri.qty}" min="0" step="0.01" onchange="updQ(${i},parseFloat(this.value)||0)" />
+      <div class="ri-unit">${g.unit}</div>
+      <button class="del-btn" onclick="remRI(${i})">×</button>
+    </div>`;
+  }).join('');
+}
+function addToRecipe(){
+  const id=parseInt(document.getElementById('ri-pick').value);if(!id)return;
+  if(recipe.items.find(i=>i.id===id))return;
+  recipe.items.push({id,qty:1});document.getElementById('ri-pick').value='';renderRI();calc();
+}
+function updQ(i,v){recipe.items[i].qty=v;renderRI();calc();}
+function remRI(i){recipe.items.splice(i,1);renderRI();calc();}
+function clearRecipe(){if(recipe.items.length&&!confirm('Clear the builder?'))return;recipe={name:'',items:[]};document.getElementById('recipe-name').value='';renderRI();calc();}
+
+function readSettings(){
+  return {
+    units:parseFloat(document.getElementById('batch-units').value)||1,
+    mins:parseFloat(document.getElementById('labor-mins').value)||0,
+    rate:parseFloat(document.getElementById('hourly').value)||0,
+    mu:parseFloat(document.getElementById('markup').value)||2.5,
+    fee:(parseFloat(document.getElementById('fee').value)||0)/100
+  };
+}
+function calc(){
+  const m=document.getElementById('builder-metrics');
+  if(!recipe.items.length){m.style.display='none';return;}
+  const s=readSettings();
+  const ingTotal=recipe.items.reduce((sum,ri)=>{const g=ings.find(x=>x.id===ri.id);return g?sum+ri.qty*Number(g.cost):sum;},0);
+  const labor=(s.mins/60)*s.rate;
+  const costU=(ingTotal+labor)/s.units;
+  const online=costU*s.mu*(1+s.fee);
+  const profit=online-costU;
+  const fmt=v=>'$'+v.toFixed(2);
+  m.style.display='grid';
+  m.innerHTML=`
+    <div class="metric"><div class="metric-lbl">Cost/unit</div><div class="metric-val">${fmt(costU)}</div></div>
+    <div class="metric"><div class="metric-lbl">Online</div><div class="metric-val">${fmt(online)}</div></div>
+    <div class="metric hi"><div class="metric-lbl">Profit</div><div class="metric-val">${fmt(profit)}</div></div>`;
+}
+
+async function saveRecipe(){
+  const name=document.getElementById('recipe-name').value.trim()||'Untitled';
+  if(!recipe.items.length){toast('Add ingredients first',true);return;}
+  const s=readSettings();
+  const ingTotal=recipe.items.reduce((sum,ri)=>{const g=ings.find(x=>x.id===ri.id);return g?sum+ri.qty*Number(g.cost):sum;},0);
+  const costU=(ingTotal+(s.mins/60*s.rate))/s.units;
+  const online=costU*s.mu*(1+s.fee), profit=online-costU;
+  const btn=document.getElementById('btn-save');btn.disabled=true;
+  const payload={name,items:recipe.items,batch_units:s.units,labor_mins:s.mins,hourly_rate:s.rate,markup:s.mu,platform_fee:s.fee*100,cost_per_unit:costU,online_price:online,profit_per_unit:profit,updated_at:new Date().toISOString()};
+  const existing=recipes.find(r=>r.name===name);
+  let error;
+  if(existing){({error}=await sb.from('recipes').update(payload).eq('id',existing.id));}
+  else{const res=await sb.from('recipes').insert(payload).select().single();error=res.error;if(!error)recipes.push(res.data);}
+  btn.disabled=false;
+  if(error){toast('Error saving',true);return;}
+  if(existing)Object.assign(existing,payload);
+  recipes.sort((a,b)=>a.name.localeCompare(b.name));
+  renderLib();toast('Recipe saved ✓');
+}
+
+// ── Library ──
+function setFilter(f,btn){filter=f;document.querySelectorAll('.rfilter').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderLib();}
+function renderLib(){
+  document.getElementById('lib-count').textContent=recipes.length;
+  const q=(document.getElementById('lib-search').value||'').trim().toLowerCase();
+  const list=recipes.filter(r=>{
+    const n=r.name.toLowerCase();
+    return (!q||n.includes(q)) && (filter==='all'||n.includes(filter));
+  });
+  const el=document.getElementById('lib-list');
+  if(!recipes.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div>No recipes yet — build one on the left</div>';return;}
+  if(!list.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🔍</div>No recipes match</div>';return;}
+  el.innerHTML=list.map(r=>{
+    const cat=catOf(r.name);
+    const open=r.id===openId;
+    const lines=(r.items||[]).map(ri=>{
+      const g=ings.find(x=>x.id===ri.id);
+      if(!g)return'';
+      return `<div class="detail-line"><span class="dl-name">${esc(g.name)}</span><span class="dl-amt">${ri.qty} ${g.unit}</span></div>`;
+    }).join('');
+    return `<div class="rec-card ${open?'open':''}" id="rc-${r.id}">
+      <div class="rec-head" onclick="toggleOpen(${r.id})">
+        <span class="rec-cat-dot ${cat}"></span>
+        <span class="rec-name">${esc(r.name)}</span>
+        <span class="rec-profit">$${Number(r.profit_per_unit).toFixed(2)}</span>
+        <span class="rec-chev">▼</span>
+      </div>
+      <div class="rec-body">
+        <div class="sec-label">Ingredients</div>
+        ${lines||'<div style="font-size:13px;color:var(--muted);">No ingredient detail</div>'}
+        <div class="detail-summary">
+          <div class="ds-box"><div class="ds-lbl">Cost</div><div class="ds-val">$${Number(r.cost_per_unit).toFixed(2)}</div></div>
+          <div class="ds-box"><div class="ds-lbl">Online</div><div class="ds-val">$${Number(r.online_price).toFixed(2)}</div></div>
+          <div class="ds-box"><div class="ds-lbl">Profit</div><div class="ds-val">$${Number(r.profit_per_unit).toFixed(2)}</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:8px;">${r.batch_units} units/batch · ${r.labor_mins} min labor · ${r.markup}× markup · ${r.platform_fee}% fee</div>
+        <div class="rec-actions">
+          <button class="btn btn-sm btn-green" onclick="editRecipe(${r.id});event.stopPropagation();">Edit in builder</button>
+          <button class="btn-danger-sm" onclick="delRecipe(${r.id});event.stopPropagation();">Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleOpen(id){openId=openId===id?null:id;renderLib();}
+
+function editRecipe(id){
+  const r=recipes.find(x=>x.id===id);if(!r)return;
+  recipe={name:r.name,items:JSON.parse(JSON.stringify(r.items))};
+  document.getElementById('recipe-name').value=r.name;
+  document.getElementById('batch-units').value=r.batch_units;
+  document.getElementById('labor-mins').value=r.labor_mins;
+  document.getElementById('hourly').value=r.hourly_rate;
+  document.getElementById('markup').value=r.markup;
+  document.getElementById('fee').value=r.platform_fee;
+  renderRI();calc();
+  window.scrollTo({top:0,behavior:'smooth'});
+  toast('Loaded into builder — edit and Save');
+}
+
+async function delRecipe(id){
+  if(!confirm('Delete this recipe?'))return;
+  await sb.from('recipes').delete().eq('id',id);
+  recipes=recipes.filter(r=>r.id!==id);
+  if(openId===id)openId=null;
+  renderLib();toast('Recipe deleted');
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+let tt;
+function toast(msg,err=false){const el=document.getElementById('toast');el.textContent=msg;el.style.background=err?'#c0392b':'var(--green)';el.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2500);}
+</script>
+</body>
+</html>
