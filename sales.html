@@ -116,6 +116,13 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:v
     padding: 3px 1px;
   }
   .bottom-nav a.active { color: #ffffff; }
+
+  /* Let wide data tables scroll sideways instead of crushing */
+  .sales-table, .plan-table { min-width: 560px; }
+  #sales-log-body, #plan-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .inv-row { grid-template-columns: minmax(0,1fr) 64px 64px 36px !important; }
+  .inv-row .status-pill, .inv-row > span { display: none; }
+
   .bottom-nav a .bn-ico { font-size: 19px; line-height: 1; }
 }
 </style>

@@ -112,7 +112,9 @@ select.inp{cursor:pointer;}
 
 .scroll{max-height:300px;overflow-y:auto;padding-right:2px;}
 .scroll-sm{max-height:240px;overflow-y:auto;padding-right:2px;}
-.scroll-saved{max-height:260px;overflow-y:auto;padding-right:2px;}
+.scroll-saved{max-height:380px;overflow-y:auto;padding-right:2px;}
+.rfilter{background:transparent;border:1px solid var(--border);border-radius:20px;padding:5px 13px;font-size:12px;font-weight:500;cursor:pointer;color:var(--muted);font-family:inherit;transition:all .15s;}
+.rfilter.active{background:var(--green);border-color:var(--green);color:#fff;}
 
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.15);border-top-color:var(--green);border-radius:50%;animation:spin .6s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -315,6 +317,14 @@ select.inp{cursor:pointer;}
           <span class="badge" id="recipe-count">0 recipes</span>
         </div>
         <div class="pb">
+          <input id="recipe-search" placeholder="&#128269;  Search recipes…" oninput="renderSaved()"
+            style="width:100%;border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;font-size:14px;background:var(--white);color:var(--ink);outline:none;font-family:inherit;margin-bottom:10px;" />
+          <div id="recipe-filters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+            <button class="rfilter active" data-cat="all" onclick="setRecipeFilter('all',this)">All</button>
+            <button class="rfilter" data-cat="soap" onclick="setRecipeFilter('soap',this)">Soap</button>
+            <button class="rfilter" data-cat="moisturizer" onclick="setRecipeFilter('moisturizer',this)">Moisturizer</button>
+            <button class="rfilter" data-cat="lip balm" onclick="setRecipeFilter('lip balm',this)">Lip Balm</button>
+          </div>
           <div class="scroll-saved" id="saved-list">
             <div class="empty-state"><div class="empty-icon">📋</div>No saved recipes yet</div>
           </div>
@@ -612,6 +622,14 @@ async function loadSaved() {
   renderSaved();
 }
 
+let recipeFilter = 'all';
+function setRecipeFilter(cat, btn) {
+  recipeFilter = cat;
+  document.querySelectorAll('.rfilter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSaved();
+}
+
 function renderSaved() {
   const el = document.getElementById('saved-list');
   document.getElementById('recipe-count').textContent = saved.length + ' recipe' + (saved.length !== 1 ? 's' : '');
@@ -619,7 +637,19 @@ function renderSaved() {
     el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div>No saved recipes yet</div>';
     return;
   }
-  el.innerHTML = saved.map(r => `
+  const searchEl = document.getElementById('recipe-search');
+  const q = searchEl ? searchEl.value.trim().toLowerCase() : '';
+  let list = saved.filter(r => {
+    const name = r.name.toLowerCase();
+    const matchesSearch = !q || name.includes(q);
+    const matchesCat = recipeFilter === 'all' || name.includes(recipeFilter);
+    return matchesSearch && matchesCat;
+  });
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div>No recipes match</div>';
+    return;
+  }
+  el.innerHTML = list.map(r => `
     <div class="saved-card" id="sc-${r.id}" onclick="loadRec(${r.id})">
       <div class="saved-card-top">
         <div class="saved-card-name">${esc(r.name)}</div>
